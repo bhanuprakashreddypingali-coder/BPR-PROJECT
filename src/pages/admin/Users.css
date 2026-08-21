@@ -1,0 +1,34 @@
+.users-page{
+    padding:30px;
+    background:#f5f5f5;
+    min-height:100vh;
+}
+
+.users-page h1{
+    margin-bottom:25px;
+}
+
+.users-table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 2px 10px rgba(0,0,0,.1);
+}
+
+.users-table th,
+.users-table td{
+    padding:15px;
+    border-bottom:1px solid #ddd;
+    text-align:left;
+}
+
+.users-table th{
+    background:#ff5722;
+    color:white;
+}
+
+.users-table tr:hover{
+    background:#f8f8f8;
+}
