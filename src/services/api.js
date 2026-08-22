@@ -1,41 +1,67 @@
 import axios from "axios";
 
+// ============================================================
+// BPR FLAVORS HUB - PRODUCTION API
+// ============================================================
+
 const api = axios.create({
-    baseURL: "http://localhost:8080/api",
+    baseURL: "https://bpr-backend-production-3381.up.railway.app/api",
+
     headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
     },
 });
 
-// Add JWT token automatically
+// ============================================================
+// JWT TOKEN
+// ============================================================
+
 api.interceptors.request.use(
     (config) => {
+
         const token =
             localStorage.getItem("token") ||
             localStorage.getItem("jwtToken") ||
             localStorage.getItem("accessToken");
 
         if (token) {
+            config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${token}`;
         }
 
         return config;
     },
+
     (error) => {
         return Promise.reject(error);
     }
 );
 
-// Handle authentication errors
+// ============================================================
+// RESPONSE HANDLING
+// ============================================================
+
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
 
     (error) => {
-        if (error.response?.status === 401) {
+
+        const status = error.response?.status;
+
+        console.error(
+            "API ERROR:",
+            status,
+            error.response?.data
+        );
+
+        if (status === 401) {
             console.error("Unauthorized request.");
         }
 
-        if (error.response?.status === 403) {
+        if (status === 403) {
             console.error("Access denied.");
         }
 
