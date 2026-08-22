@@ -4,16 +4,17 @@ import axios from "axios";
 // API BASE URL
 // =========================================================
 
-const API_BASE_URL =
+const API_BASE_URL = (
     import.meta.env.VITE_API_URL ||
-    "https://bpr-backend-production-3381.up.railway.app/api";
+    "https://bpr-backend-production-3381.up.railway.app/api"
+).replace(/\/+$/, "");
 
 // =========================================================
 // AXIOS INSTANCE
 // =========================================================
 
 const API = axios.create({
-    baseURL: API_BASE_URL.replace(/\/+$/, ""),
+    baseURL: API_BASE_URL,
     headers: {
         "Content-Type": "application/json",
     },
@@ -26,6 +27,7 @@ const API = axios.create({
 
 API.interceptors.request.use(
     (config) => {
+
         const token = localStorage.getItem("token");
 
         if (token) {
@@ -36,6 +38,7 @@ API.interceptors.request.use(
         console.log(
             "================================================="
         );
+
         console.log(
             "API REQUEST:",
             config.method?.toUpperCase(),
@@ -52,6 +55,7 @@ API.interceptors.request.use(
 
         return config;
     },
+
     (error) => {
         return Promise.reject(error);
     }
@@ -62,7 +66,9 @@ API.interceptors.request.use(
 // =========================================================
 
 API.interceptors.response.use(
+
     (response) => {
+
         console.log(
             "API RESPONSE:",
             response.status,
@@ -73,18 +79,31 @@ API.interceptors.response.use(
     },
 
     (error) => {
+
         const status = error.response?.status;
         const data = error.response?.data;
 
         console.error(
             "================================================="
         );
-        console.error("API ERROR STATUS:", status);
-        console.error("API ERROR DATA:", data);
+
+        console.error(
+            "API ERROR STATUS:",
+            status
+        );
+
+        console.error(
+            "API ERROR DATA:",
+            data
+        );
+
         console.error(
             "API ERROR URL:",
-            error.config?.baseURL + error.config?.url
+            error.config
+                ? `${error.config.baseURL}${error.config.url}`
+                : "Unknown URL"
         );
+
         console.error(
             "================================================="
         );
@@ -230,43 +249,65 @@ export const reviewApi = {
         ),
 
     create: (data) =>
-        API.post("/reviews", data),
+        API.post(
+            "/reviews",
+            data
+        ),
 
     update: (id, data) =>
-        API.put(`/reviews/${id}`, data),
+        API.put(
+            `/reviews/${id}`,
+            data
+        ),
 
     delete: (id) =>
-        API.delete(`/reviews/${id}`),
+        API.delete(
+            `/reviews/${id}`
+        ),
 };
 
 // =========================================================
 // SUPPORT API
 // =========================================================
-// IMPORTANT:
 //
-// Frontend base URL:
+// BASE URL:
 // https://bpr-backend-production-3381.up.railway.app/api
 //
-// Therefore:
+// CUSTOMER / OWNER:
 //
-// "/support/tickets"
-// becomes:
+// POST   /api/support/tickets
+// GET    /api/support/tickets
+// GET    /api/support/tickets/{id}
+// POST   /api/support/tickets/{id}/messages
 //
-// https://bpr-backend-production-3381.up.railway.app/api/support/tickets
+// ADMIN:
 //
-// DO NOT use "/support" for ticket creation.
+// GET    /api/admin/support
+// GET    /api/admin/support/{id}
+// POST   /api/admin/support/{id}/messages
+// PUT    /api/admin/support/{id}
+// PUT    /api/admin/support/{id}/close
+// PUT    /api/admin/support/{id}/reopen
+// DELETE /api/admin/support/{id}
+//
 // =========================================================
 
 export const supportApi = {
 
     // =====================================================
-    // CUSTOMER / OWNER
+    // CREATE TICKET
+    // POST /api/support/tickets
     // =====================================================
 
     createTicket: (data) => {
+
         console.log(
-            "CREATE TICKET:",
-            `${API_BASE_URL}/support/tickets`,
+            "CREATE SUPPORT TICKET:",
+            `${API_BASE_URL}/support/tickets`
+        );
+
+        console.log(
+            "DATA:",
             data
         );
 
@@ -276,9 +317,15 @@ export const supportApi = {
         );
     },
 
+    // =====================================================
+    // GET MY TICKETS
+    // GET /api/support/tickets
+    // =====================================================
+
     getMyTickets: () => {
+
         console.log(
-            "GET MY TICKETS:",
+            "GET MY SUPPORT TICKETS:",
             `${API_BASE_URL}/support/tickets`
         );
 
@@ -287,9 +334,15 @@ export const supportApi = {
         );
     },
 
+    // =====================================================
+    // GET MY SINGLE TICKET
+    // GET /api/support/tickets/{id}
+    // =====================================================
+
     getMyTicket: (ticketId) => {
+
         console.log(
-            "GET MY TICKET:",
+            "GET SUPPORT TICKET:",
             `${API_BASE_URL}/support/tickets/${ticketId}`
         );
 
@@ -298,14 +351,19 @@ export const supportApi = {
         );
     },
 
+    // =====================================================
+    // USER MESSAGE
+    // POST /api/support/tickets/{id}/messages
+    // =====================================================
+
     addUserMessage: (
         ticketId,
         data
     ) => {
+
         console.log(
-            "ADD USER MESSAGE:",
-            `${API_BASE_URL}/support/tickets/${ticketId}/messages`,
-            data
+            "ADD USER SUPPORT MESSAGE:",
+            `${API_BASE_URL}/support/tickets/${ticketId}/messages`
         );
 
         return API.post(
@@ -315,16 +373,14 @@ export const supportApi = {
     },
 
     // =====================================================
-    // ADMIN
+    // ADMIN - GET ALL
+    // GET /api/admin/support
     // =====================================================
 
     getAllTickets: (status = "") => {
 
-        console.log(
-            "GET ADMIN SUPPORT TICKETS"
-        );
-
         if (status) {
+
             return API.get(
                 "/admin/support",
                 {
@@ -340,43 +396,85 @@ export const supportApi = {
         );
     },
 
-    getAdminTicket: (ticketId) =>
-        API.get(
+    // =====================================================
+    // ADMIN - GET SINGLE
+    // GET /api/admin/support/{id}
+    // =====================================================
+
+    getAdminTicket: (ticketId) => {
+
+        return API.get(
             `/admin/support/${ticketId}`
-        ),
+        );
+    },
+
+    // =====================================================
+    // ADMIN - ADD MESSAGE
+    // POST /api/admin/support/{id}/messages
+    // =====================================================
 
     addAdminMessage: (
         ticketId,
         data
-    ) =>
-        API.post(
+    ) => {
+
+        return API.post(
             `/admin/support/${ticketId}/messages`,
             data
-        ),
+        );
+    },
+
+    // =====================================================
+    // ADMIN - UPDATE
+    // PUT /api/admin/support/{id}
+    // =====================================================
 
     updateTicket: (
         ticketId,
         data
-    ) =>
-        API.put(
+    ) => {
+
+        return API.put(
             `/admin/support/${ticketId}`,
             data
-        ),
+        );
+    },
 
-    closeTicket: (ticketId) =>
-        API.put(
+    // =====================================================
+    // ADMIN - CLOSE
+    // PUT /api/admin/support/{id}/close
+    // =====================================================
+
+    closeTicket: (ticketId) => {
+
+        return API.put(
             `/admin/support/${ticketId}/close`
-        ),
+        );
+    },
 
-    reopenTicket: (ticketId) =>
-        API.put(
+    // =====================================================
+    // ADMIN - REOPEN
+    // PUT /api/admin/support/{id}/reopen
+    // =====================================================
+
+    reopenTicket: (ticketId) => {
+
+        return API.put(
             `/admin/support/${ticketId}/reopen`
-        ),
+        );
+    },
 
-    deleteTicket: (ticketId) =>
-        API.delete(
+    // =====================================================
+    // ADMIN - DELETE
+    // DELETE /api/admin/support/{id}
+    // =====================================================
+
+    deleteTicket: (ticketId) => {
+
+        return API.delete(
             `/admin/support/${ticketId}`
-        ),
+        );
+    },
 };
 
 // =========================================================
