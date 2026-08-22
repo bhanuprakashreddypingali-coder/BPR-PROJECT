@@ -4,8 +4,9 @@ import axios from "axios";
 // BASE API
 // ============================================================
 
+// Railway production backend
 const API = axios.create({
-    baseURL: "http://localhost:8080/api",
+    baseURL: "https://bpr-backend-production-3381.up.railway.app/api",
 
     headers: {
         "Content-Type": "application/json",
@@ -30,7 +31,9 @@ API.interceptors.request.use(
         return config;
     },
 
-    (error) => Promise.reject(error)
+    (error) => {
+        return Promise.reject(error);
+    }
 );
 
 // ============================================================
@@ -38,7 +41,9 @@ API.interceptors.request.use(
 // ============================================================
 
 API.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
 
     (error) => {
 
@@ -50,16 +55,21 @@ API.interceptors.response.use(
             error.response?.data
         );
 
+        // Unauthorized
         if (status === 401) {
 
             localStorage.removeItem("token");
             localStorage.removeItem("user");
             localStorage.removeItem("role");
+
+            console.warn("401 Unauthorized - session cleared");
         }
 
+        // Forbidden
         if (status === 403) {
+
             console.warn(
-                "403 Forbidden - check authentication/role"
+                "403 Forbidden - check authentication and role"
             );
         }
 
@@ -157,26 +167,22 @@ export const supportApi = {
 
 export const reviewApi = {
 
-    // GET /api/reviews/restaurant/{restaurantId}
     getRestaurantReviews: (restaurantId) =>
         API.get(
             `/reviews/restaurant/${restaurantId}`
         ),
 
-    // POST /api/reviews
     addReview: (data) =>
         API.post(
             "/reviews",
             data
         ),
 
-    // GET /api/reviews/my
     getMyReviews: () =>
         API.get(
             "/reviews/my"
         ),
 
-    // DELETE /api/reviews/{id}
     deleteReview: (id) =>
         API.delete(
             `/reviews/${id}`
