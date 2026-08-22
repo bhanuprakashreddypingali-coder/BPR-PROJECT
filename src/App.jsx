@@ -63,7 +63,6 @@ import Wishlist from "./pages/user/Wishlist";
 
 import Support from "./pages/user/Support";
 
-
 // ==================================================
 // APP LAYOUT
 // ==================================================
@@ -72,7 +71,7 @@ function AppLayout() {
 
     const location = useLocation();
 
-    // Hide main Navbar on auth pages
+    // Hide main Navbar on authentication pages
     const hideNavbar =
         location.pathname === "/login" ||
         location.pathname === "/register";
@@ -91,7 +90,6 @@ function AppLayout() {
                     path="/"
                     element={<Home />}
                 />
-
 
                 {/* ==================================================
                     RESTAURANT DETAILS
@@ -112,9 +110,9 @@ function AppLayout() {
                     element={<RestaurantDetails />}
                 />
 
-
                 {/* ==================================================
                     RESTAURANT FOODS
+                    OLD ROUTES KEPT FOR COMPATIBILITY
                 ================================================== */}
 
                 <Route
@@ -132,6 +130,21 @@ function AppLayout() {
                     element={<Foods />}
                 />
 
+                {/* ==================================================
+                    CUSTOMER MENU
+                    DEDICATED CUSTOMER ROUTE
+                ================================================== */}
+
+                <Route
+                    path="/customer/menu/:id"
+                    element={
+                        <ProtectedRoute
+                            allowedRoles={["CUSTOMER"]}
+                        >
+                            <Foods />
+                        </ProtectedRoute>
+                    }
+                />
 
                 {/* ==================================================
                     AUTHENTICATION
@@ -146,7 +159,6 @@ function AppLayout() {
                     path="/register"
                     element={<Register />}
                 />
-
 
                 {/* ==================================================
                     CUSTOMER CART
@@ -163,7 +175,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     CUSTOMER CHECKOUT
                 ================================================== */}
@@ -178,7 +189,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     PAYMENT
@@ -206,7 +216,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     PAYMENT SUCCESS
                 ================================================== */}
@@ -222,7 +231,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     PAYMENT FAILED
                 ================================================== */}
@@ -237,7 +245,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     CUSTOMER ORDERS
@@ -265,7 +272,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     CUSTOMER PROFILE
                 ================================================== */}
@@ -280,7 +286,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     FAVORITES
@@ -308,7 +313,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     WISHLIST
                 ================================================== */}
@@ -324,9 +328,8 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
-                    24/7 SUPPORT
+                    SUPPORT
                     CUSTOMER + RESTAURANT OWNER
                 ================================================== */}
 
@@ -343,7 +346,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     OWNER DASHBOARD
@@ -362,7 +364,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     OWNER RESTAURANT
                 ================================================== */}
@@ -379,7 +380,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     OWNER FOODS
@@ -424,7 +424,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     OWNER ORDERS
                 ================================================== */}
@@ -441,7 +440,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     OWNER REPORTS
@@ -460,7 +458,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     ADMIN DASHBOARD
                 ================================================== */}
@@ -476,7 +473,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     ADMIN USERS
                 ================================================== */}
@@ -491,7 +487,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     ADMIN RESTAURANTS
@@ -519,7 +514,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     ADMIN FOODS
                 ================================================== */}
@@ -534,7 +528,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     ADMIN ORDERS
@@ -551,7 +544,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     ADMIN REPORTS
                 ================================================== */}
@@ -567,7 +559,6 @@ function AppLayout() {
                     }
                 />
 
-
                 {/* ==================================================
                     ADMIN SUPPORT
                 ================================================== */}
@@ -582,7 +573,6 @@ function AppLayout() {
                         </ProtectedRoute>
                     }
                 />
-
 
                 {/* ==================================================
                     UNKNOWN URL
@@ -602,7 +592,6 @@ function AppLayout() {
         </>
     );
 }
-
 
 // ==================================================
 // ROOT APP

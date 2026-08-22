@@ -12,23 +12,19 @@ const API_BASE_URL =
 // ============================================================
 
 const api = axios.create({
-
     baseURL: API_BASE_URL,
 
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json"
     }
-
 });
-
 
 // ============================================================
 // JWT REQUEST INTERCEPTOR
 // ============================================================
 
 api.interceptors.request.use(
-
     (config) => {
 
         const token =
@@ -38,8 +34,7 @@ api.interceptors.request.use(
 
         if (token) {
 
-            config.headers =
-                config.headers || {};
+            config.headers = config.headers || {};
 
             config.headers.Authorization =
                 `Bearer ${token}`;
@@ -49,45 +44,34 @@ api.interceptors.request.use(
     },
 
     (error) => {
-
         return Promise.reject(error);
     }
-
 );
-
 
 // ============================================================
 // RESPONSE INTERCEPTOR
 // ============================================================
 
 api.interceptors.response.use(
-
     (response) => {
-
         return response;
     },
 
     (error) => {
 
-        const status =
-            error.response?.status;
+        const status = error.response?.status;
 
         console.error(
             "API ERROR:",
             status,
-            error.response?.data ||
-            error.message
+            error.response?.data || error.message
         );
 
         if (status === 401) {
-
-            console.warn(
-                "Unauthorized request."
-            );
+            console.warn("Unauthorized request.");
         }
 
         if (status === 403) {
-
             console.warn(
                 "Access denied. Check authentication or role."
             );
@@ -95,9 +79,7 @@ api.interceptors.response.use(
 
         return Promise.reject(error);
     }
-
 );
-
 
 // ============================================================
 // EXPORT

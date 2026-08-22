@@ -1,4 +1,4 @@
-import React, {
+import {
     useEffect,
     useMemo,
     useState
@@ -37,17 +37,13 @@ function Home() {
     const [error, setError] =
         useState("");
 
-
     // =========================================================
     // LOAD RESTAURANTS
     // =========================================================
 
     useEffect(() => {
-
         fetchRestaurants();
-
     }, []);
-
 
     const fetchRestaurants = async () => {
 
@@ -105,7 +101,6 @@ function Home() {
         }
     };
 
-
     // =========================================================
     // RESTAURANT IMAGE
     // =========================================================
@@ -138,7 +133,6 @@ function Home() {
 
         return `${API_URL}/${restaurant.image}`;
     };
-
 
     // =========================================================
     // SEARCH
@@ -192,7 +186,6 @@ function Home() {
             search
         ]);
 
-
     // =========================================================
     // TIME TO MINUTES
     // =========================================================
@@ -233,7 +226,6 @@ function Home() {
             minutes
         );
     };
-
 
     // =========================================================
     // RESTAURANT OPEN STATUS
@@ -286,7 +278,6 @@ function Home() {
         return true;
     };
 
-
     // =========================================================
     // FORMAT TIME
     // =========================================================
@@ -336,7 +327,6 @@ function Home() {
         return `${hour}:${minute} ${suffix}`;
     };
 
-
     // =========================================================
     // RATING
     // =========================================================
@@ -359,7 +349,6 @@ function Home() {
         return rating.toFixed(1);
     };
 
-
     // =========================================================
     // GET RESTAURANT ID
     // =========================================================
@@ -373,7 +362,6 @@ function Home() {
             restaurant?.restaurantId
         );
     };
-
 
     // =========================================================
     // VIEW DETAILS
@@ -407,9 +395,9 @@ function Home() {
         );
     };
 
-
     // =========================================================
     // VIEW MENU
+    // CUSTOMER ONLY
     // =========================================================
 
     const handleViewMenu = (
@@ -435,11 +423,14 @@ function Home() {
             return;
         }
 
+        // IMPORTANT:
+        // Customer View Menu uses the dedicated
+        // customer menu route.
+
         navigate(
-            `/restaurants/${restaurantId}`
+            `/customer/menu/${restaurantId}`
         );
     };
-
 
     // =========================================================
     // RETRY
@@ -448,7 +439,6 @@ function Home() {
     const handleRetry = () => {
         fetchRestaurants();
     };
-
 
     // =========================================================
     // LOADING
@@ -473,7 +463,6 @@ function Home() {
             </div>
         );
     }
-
 
     // =========================================================
     // PAGE
@@ -545,7 +534,6 @@ function Home() {
 
             </section>
 
-
             {/* RESTAURANTS */}
 
             <section className="restaurants-section">
@@ -580,7 +568,6 @@ function Home() {
 
                 </div>
 
-
                 {/* ERROR */}
 
                 {error && (
@@ -608,7 +595,6 @@ function Home() {
 
                     </div>
                 )}
-
 
                 {/* NO RESTAURANTS */}
 
@@ -646,7 +632,6 @@ function Home() {
 
                         </div>
                     )}
-
 
                 {/* RESTAURANT GRID */}
 
@@ -723,7 +708,6 @@ function Home() {
 
                                             </div>
 
-
                                             {/* CARD BODY */}
 
                                             <div className="restaurant-card-body">
@@ -748,7 +732,6 @@ function Home() {
 
                                                 </div>
 
-
                                                 <p className="restaurant-description">
 
                                                     {
@@ -757,7 +740,6 @@ function Home() {
                                                     }
 
                                                 </p>
-
 
                                                 <div className="restaurant-address">
 
@@ -769,7 +751,6 @@ function Home() {
                                                     }
 
                                                 </div>
-
 
                                                 <div className="restaurant-time-row">
 
@@ -800,15 +781,18 @@ function Home() {
                                                                 : "closed-text"
                                                         }
                                                     >
+
                                                         {
                                                             isOpen
                                                                 ? "Open now"
                                                                 : "Closed now"
                                                         }
+
                                                     </span>
 
                                                 </div>
 
+                                                {/* ACTION BUTTONS */}
 
                                                 <div className="restaurant-buttons">
 
