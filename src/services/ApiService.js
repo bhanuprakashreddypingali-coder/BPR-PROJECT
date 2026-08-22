@@ -1,44 +1,55 @@
 import axios from "axios";
 
-/* =========================================================
-   API BASE URL
-   ========================================================= */
+// =========================================================
+// API BASE URL
+// =========================================================
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://bpr-backend-production-3381.up.railway.app/api";
+
+// =========================================================
+// AXIOS INSTANCE
+// =========================================================
 
 const API = axios.create({
-    baseURL: "https://bpr-backend-production-3381.up.railway.app/api",
+    baseURL: API_BASE_URL,
     headers: {
-        "Content-Type": "application/json",
-    },
+        "Content-Type": "application/json"
+    }
 });
 
-/* =========================================================
-   REQUEST INTERCEPTOR
-   ========================================================= */
+// =========================================================
+// REQUEST INTERCEPTOR
+// =========================================================
 
 API.interceptors.request.use(
     (config) => {
 
-        const token = localStorage.getItem("token");
+        const token =
+            localStorage.getItem("token");
 
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+
+            config.headers.Authorization =
+                `Bearer ${token}`;
         }
 
         return config;
     },
+
     (error) => {
         return Promise.reject(error);
     }
 );
 
-/* =========================================================
-   RESPONSE INTERCEPTOR
-   ========================================================= */
+// =========================================================
+// RESPONSE INTERCEPTOR
+// =========================================================
 
 API.interceptors.response.use(
-    (response) => {
-        return response;
-    },
+
+    (response) => response,
 
     (error) => {
 
@@ -51,402 +62,202 @@ API.interceptors.response.use(
         if (error.response?.status === 401) {
 
             console.warn(
-                "Unauthorized request. Token may be expired."
+                "Authentication expired or invalid."
             );
 
             // Do not automatically remove token here.
-            // This prevents unexpected logout during development.
+            // Your application may want to handle logout itself.
         }
 
         return Promise.reject(error);
     }
 );
 
-/* =========================================================
-   AUTH API
-   ========================================================= */
+// =========================================================
+// AUTH API
+// =========================================================
 
 export const authApi = {
 
-    login: (data) => {
-        return API.post("/auth/login", data);
-    },
+    login: (data) =>
+        API.post("/auth/login", data),
 
-    register: (data) => {
-        return API.post("/auth/register", data);
-    },
+    register: (data) =>
+        API.post("/auth/register", data),
 
-    getProfile: () => {
-        return API.get("/auth/profile");
-    },
-
-    logout: () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-    },
+    getProfile: () =>
+        API.get("/users/profile")
 };
 
-/* =========================================================
-   USER API
-   ========================================================= */
-
-export const userApi = {
-
-    getUsers: () => {
-        return API.get("/users");
-    },
-
-    getUser: (id) => {
-        return API.get(`/users/${id}`);
-    },
-
-    updateUser: (id, data) => {
-        return API.put(`/users/${id}`, data);
-    },
-
-    deleteUser: (id) => {
-        return API.delete(`/users/${id}`);
-    },
-};
-
-/* =========================================================
-   RESTAURANT API
-   ========================================================= */
+// =========================================================
+// RESTAURANT API
+// =========================================================
 
 export const restaurantApi = {
 
-    getAll: () => {
-        return API.get("/restaurants");
-    },
+    getAll: () =>
+        API.get("/restaurants"),
 
-    getById: (id) => {
-        return API.get(`/restaurants/${id}`);
-    },
+    getById: (id) =>
+        API.get(`/restaurants/${id}`),
 
-    create: (data) => {
-        return API.post("/restaurants", data);
-    },
+    create: (data) =>
+        API.post("/restaurants", data),
 
-    update: (id, data) => {
-        return API.put(`/restaurants/${id}`, data);
-    },
+    update: (id, data) =>
+        API.put(`/restaurants/${id}`, data),
 
-    delete: (id) => {
-        return API.delete(`/restaurants/${id}`);
-    },
+    delete: (id) =>
+        API.delete(`/restaurants/${id}`)
 };
 
-/* =========================================================
-   FOOD API
-   ========================================================= */
+// =========================================================
+// FOOD API
+// =========================================================
 
 export const foodApi = {
 
-    getAll: () => {
-        return API.get("/foods");
-    },
+    getAll: () =>
+        API.get("/foods"),
 
-    getById: (id) => {
-        return API.get(`/foods/${id}`);
-    },
+    getById: (id) =>
+        API.get(`/foods/${id}`),
 
-    create: (data) => {
-        return API.post("/foods", data);
-    },
+    getByRestaurant: (restaurantId) =>
+        API.get(
+            `/foods/restaurant/${restaurantId}`
+        ),
 
-    update: (id, data) => {
-        return API.put(`/foods/${id}`, data);
-    },
+    create: (data) =>
+        API.post("/foods", data),
 
-    delete: (id) => {
-        return API.delete(`/foods/${id}`);
-    },
+    update: (id, data) =>
+        API.put(`/foods/${id}`, data),
+
+    delete: (id) =>
+        API.delete(`/foods/${id}`)
 };
 
-/* =========================================================
-   CART API
-   ========================================================= */
+// =========================================================
+// CART API
+// =========================================================
 
 export const cartApi = {
 
-    getCart: () => {
-        return API.get("/cart");
-    },
+    getCart: () =>
+        API.get("/cart"),
 
-    addToCart: (data) => {
-        return API.post("/cart", data);
-    },
+    addToCart: (data) =>
+        API.post("/cart", data),
 
-    updateCartItem: (id, data) => {
-        return API.put(`/cart/${id}`, data);
-    },
+    updateQuantity: (id, quantity) =>
+        API.put(
+            `/cart/${id}`,
+            { quantity }
+        ),
 
-    removeFromCart: (id) => {
-        return API.delete(`/cart/${id}`);
-    },
+    removeItem: (id) =>
+        API.delete(`/cart/${id}`),
 
-    clearCart: () => {
-        return API.delete("/cart/clear");
-    },
+    clearCart: () =>
+        API.delete("/cart/clear")
 };
 
-/* =========================================================
-   ORDER API
-   ========================================================= */
+// =========================================================
+// ORDER API
+// =========================================================
 
 export const orderApi = {
 
-    createOrder: (data) => {
-        return API.post("/orders", data);
-    },
+    create: (data) =>
+        API.post("/orders", data),
 
-    getMyOrders: () => {
-        return API.get("/orders/my");
-    },
+    getMyOrders: () =>
+        API.get("/orders/my"),
 
-    getOrderById: (id) => {
-        return API.get(`/orders/${id}`);
-    },
+    getById: (id) =>
+        API.get(`/orders/${id}`),
 
-    cancelOrder: (id) => {
-        return API.put(`/orders/${id}/cancel`);
-    },
-
-    getAllOrders: () => {
-        return API.get("/orders");
-    },
-
-    updateOrderStatus: (id, status) => {
-        return API.put(
-            `/orders/${id}/status`,
-            { status }
-        );
-    },
+    cancel: (id) =>
+        API.put(`/orders/${id}/cancel`)
 };
 
-/* =========================================================
-   REVIEW API
-   ========================================================= */
+// =========================================================
+// REVIEW API
+// =========================================================
 
 export const reviewApi = {
 
-    getRestaurantReviews: (restaurantId) => {
-        return API.get(
+    getRestaurantReviews: (restaurantId) =>
+        API.get(
             `/reviews/restaurant/${restaurantId}`
-        );
-    },
+        ),
 
-    createReview: (data) => {
-        return API.post("/reviews", data);
-    },
+    create: (data) =>
+        API.post("/reviews", data),
 
-    updateReview: (id, data) => {
-        return API.put(`/reviews/${id}`, data);
-    },
+    update: (id, data) =>
+        API.put(`/reviews/${id}`, data),
 
-    deleteReview: (id) => {
-        return API.delete(`/reviews/${id}`);
-    },
+    delete: (id) =>
+        API.delete(`/reviews/${id}`)
 };
 
-/* =========================================================
-   WISHLIST API
-   ========================================================= */
-
-export const wishlistApi = {
-
-    getWishlist: () => {
-        return API.get("/wishlist");
-    },
-
-    add: (foodId) => {
-        return API.post(
-            `/wishlist/${foodId}`
-        );
-    },
-
-    remove: (foodId) => {
-        return API.delete(
-            `/wishlist/${foodId}`
-        );
-    },
-};
-
-/* =========================================================
-   ADDRESS API
-   ========================================================= */
-
-export const addressApi = {
-
-    getAll: () => {
-        return API.get("/addresses");
-    },
-
-    getById: (id) => {
-        return API.get(`/addresses/${id}`);
-    },
-
-    create: (data) => {
-        return API.post("/addresses", data);
-    },
-
-    update: (id, data) => {
-        return API.put(`/addresses/${id}`, data);
-    },
-
-    delete: (id) => {
-        return API.delete(`/addresses/${id}`);
-    },
-};
-
-/* =========================================================
-   OWNER API
-   ========================================================= */
-
-export const ownerApi = {
-
-    getDashboard: () => {
-        return API.get("/owner/dashboard");
-    },
-
-    getRestaurant: () => {
-        return API.get("/owner/restaurant");
-    },
-
-    updateRestaurant: (data) => {
-        return API.put(
-            "/owner/restaurant",
-            data
-        );
-    },
-
-    getFoods: () => {
-        return API.get("/owner/foods");
-    },
-
-    getFood: (id) => {
-        return API.get(`/owner/foods/${id}`);
-    },
-
-    createFood: (data) => {
-        return API.post(
-            "/owner/foods",
-            data
-        );
-    },
-
-    updateFood: (id, data) => {
-        return API.put(
-            `/owner/foods/${id}`,
-            data
-        );
-    },
-
-    deleteFood: (id) => {
-        return API.delete(
-            `/owner/foods/${id}`
-        );
-    },
-
-    getOrders: () => {
-        return API.get("/owner/orders");
-    },
-
-    updateOrderStatus: (id, status) => {
-        return API.put(
-            `/owner/orders/${id}/status`,
-            { status }
-        );
-    },
-
-    getReports: () => {
-        return API.get("/owner/reports");
-    },
-};
-
-/* =========================================================
-   ADMIN API
-   ========================================================= */
-
-export const adminApi = {
-
-    getDashboard: () => {
-        return API.get("/admin/dashboard");
-    },
-
-    getUsers: () => {
-        return API.get("/admin/users");
-    },
-
-    getRestaurants: () => {
-        return API.get("/admin/restaurants");
-    },
-
-    getFoods: () => {
-        return API.get("/admin/foods");
-    },
-
-    getOrders: () => {
-        return API.get("/admin/orders");
-    },
-
-    getReports: () => {
-        return API.get("/admin/reports");
-    },
-};
-
-/* =========================================================
-   SUPPORT API
-   ========================================================= */
+// =========================================================
+// SUPPORT API
+// IMPORTANT
+// Backend SupportController:
+// @RequestMapping("/api/support")
+// =========================================================
 
 export const supportApi = {
 
-    /* -------------------------------------------------------
-       CUSTOMER / RESTAURANT OWNER
-       ------------------------------------------------------- */
+    // ---------------------------------------------------------
+    // CUSTOMER / OWNER
+    // ---------------------------------------------------------
 
-    createTicket: (data) => {
-        return API.post(
+    createTicket: (data) =>
+        API.post(
             "/support/tickets",
             data
-        );
-    },
+        ),
 
-    getMyTickets: () => {
-        return API.get(
+    getMyTickets: () =>
+        API.get(
             "/support/tickets"
-        );
-    },
+        ),
 
-    getMyTicket: (ticketId) => {
-        return API.get(
+    getMyTicket: (ticketId) =>
+        API.get(
             `/support/tickets/${ticketId}`
-        );
-    },
+        ),
 
-    addUserMessage: (ticketId, data) => {
-        return API.post(
+    addUserMessage: (
+        ticketId,
+        data
+    ) =>
+        API.post(
             `/support/tickets/${ticketId}/messages`,
             data
-        );
-    },
+        ),
 
-    /* -------------------------------------------------------
-       ADMIN
-       ------------------------------------------------------- */
+    // ---------------------------------------------------------
+    // ADMIN
+    // ---------------------------------------------------------
 
-    getAllTickets: (status = "") => {
+    getAllTickets: (
+        status = ""
+    ) => {
 
-        if (
-            status !== null &&
-            status !== undefined &&
-            status !== ""
-        ) {
+        if (status) {
 
             return API.get(
-                `/admin/support?status=${encodeURIComponent(
-                    status
-                )}`
+                "/admin/support",
+                {
+                    params: {
+                        status
+                    }
+                }
             );
         }
 
@@ -455,47 +266,110 @@ export const supportApi = {
         );
     },
 
-    getAdminTicket: (ticketId) => {
-        return API.get(
+    getAdminTicket: (ticketId) =>
+        API.get(
             `/admin/support/${ticketId}`
-        );
-    },
+        ),
 
-    addAdminMessage: (ticketId, data) => {
-        return API.post(
+    addAdminMessage: (
+        ticketId,
+        data
+    ) =>
+        API.post(
             `/admin/support/${ticketId}/messages`,
             data
-        );
-    },
+        ),
 
-    updateTicket: (ticketId, data) => {
-        return API.put(
+    updateTicket: (
+        ticketId,
+        data
+    ) =>
+        API.put(
             `/admin/support/${ticketId}`,
             data
-        );
-    },
+        ),
 
-    closeTicket: (ticketId) => {
-        return API.put(
+    closeTicket: (ticketId) =>
+        API.put(
             `/admin/support/${ticketId}/close`
-        );
-    },
+        ),
 
-    reopenTicket: (ticketId) => {
-        return API.put(
+    reopenTicket: (ticketId) =>
+        API.put(
             `/admin/support/${ticketId}/reopen`
-        );
-    },
+        ),
 
-    deleteTicket: (ticketId) => {
-        return API.delete(
+    deleteTicket: (ticketId) =>
+        API.delete(
             `/admin/support/${ticketId}`
-        );
-    },
+        )
 };
 
-/* =========================================================
-   EXPORT DEFAULT API INSTANCE
-   ========================================================= */
+// =========================================================
+// USER API
+// =========================================================
+
+export const userApi = {
+
+    getProfile: () =>
+        API.get("/users/profile"),
+
+    updateProfile: (data) =>
+        API.put(
+            "/users/profile",
+            data
+        )
+};
+
+// =========================================================
+// ADMIN API
+// =========================================================
+
+export const adminApi = {
+
+    getDashboard: () =>
+        API.get("/admin/dashboard"),
+
+    getUsers: () =>
+        API.get("/admin/users"),
+
+    getRestaurants: () =>
+        API.get("/admin/restaurants"),
+
+    getFoods: () =>
+        API.get("/admin/foods"),
+
+    getOrders: () =>
+        API.get("/admin/orders")
+};
+
+// =========================================================
+// OWNER API
+// =========================================================
+
+export const ownerApi = {
+
+    getDashboard: () =>
+        API.get("/owner/dashboard"),
+
+    getRestaurant: () =>
+        API.get("/owner/restaurant"),
+
+    updateRestaurant: (data) =>
+        API.put(
+            "/owner/restaurant",
+            data
+        ),
+
+    getFoods: () =>
+        API.get("/owner/foods"),
+
+    getOrders: () =>
+        API.get("/owner/orders")
+};
+
+// =========================================================
+// DEFAULT EXPORT
+// =========================================================
 
 export default API;
