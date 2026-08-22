@@ -8,7 +8,7 @@ const API_BASE_URL =
     "https://bpr-backend-production-3381.up.railway.app/api";
 
 // ============================================================
-// MAIN AXIOS INSTANCE
+// AXIOS INSTANCE
 // ============================================================
 
 const API = axios.create({
@@ -21,11 +21,10 @@ const API = axios.create({
 });
 
 // ============================================================
-// JWT TOKEN HELPER
+// GET JWT TOKEN
 // ============================================================
 
 const getToken = () => {
-
     return (
         localStorage.getItem("token") ||
         localStorage.getItem("jwtToken") ||
@@ -43,9 +42,7 @@ API.interceptors.request.use(
         const token = getToken();
 
         if (token) {
-
-            config.headers =
-                config.headers || {};
+            config.headers = config.headers || {};
 
             config.headers.Authorization =
                 `Bearer ${token}`;
@@ -55,7 +52,6 @@ API.interceptors.request.use(
     },
 
     (error) => {
-
         return Promise.reject(error);
     }
 );
@@ -65,55 +61,51 @@ API.interceptors.request.use(
 // ============================================================
 
 API.interceptors.response.use(
-
     (response) => {
-
         return response;
     },
 
     (error) => {
 
-        const status =
-            error?.response?.status;
-
-        const data =
-            error?.response?.data;
+        const status = error.response?.status;
 
         console.error(
             "API ERROR:",
             status,
-            data || error.message
+            error.response?.data || error.message
         );
 
-        // ------------------------------------------------------
+        // ----------------------------------------------------
         // 401 UNAUTHORIZED
-        // ------------------------------------------------------
+        // ----------------------------------------------------
 
         if (status === 401) {
 
             console.warn(
-                "Unauthorized request."
+                "401 Unauthorized - JWT may be expired or invalid."
             );
 
-            /*
-             * Do not automatically redirect.
-             * This prevents pages from unexpectedly
-             * navigating to login.
-             */
+            localStorage.removeItem("token");
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("accessToken");
 
-            // Keep token removal disabled here because
-            // some backend endpoints may return 401
-            // temporarily.
+            localStorage.removeItem("user");
+            localStorage.removeItem("role");
         }
 
-        // ------------------------------------------------------
+        // ----------------------------------------------------
         // 403 FORBIDDEN
-        // ------------------------------------------------------
+        // ----------------------------------------------------
 
         if (status === 403) {
 
             console.warn(
-                "Access denied. Check JWT token and user role."
+                "403 Forbidden - User does not have permission."
+            );
+
+            console.warn(
+                "Response:",
+                error.response?.data
             );
         }
 
@@ -121,6 +113,74 @@ API.interceptors.response.use(
     }
 );
 
+// ============================================================
+// SUPPORT API
+// ============================================================
+
+export const supportApi = {
+
+    // --------------------------------------------------------
+    // CUSTOMER / OWNER
+    // --------------------------------------------------------
+
+    createTicket: (data) => {
+        return API.post("/support", data);
+    },
+
+    getMyTickets: () => {
+        return API.get("/support");
+    },
+
+    getTicket: (id) => {
+        return API.get(`/support/${id}`);
+    },
+
+    addMessage: (id, data) => {
+        return API.post(
+            `/support/${id}/messages`,
+            data
+        );
+    },
+
+    // --------------------------------------------------------
+    // ADMIN
+    // --------------------------------------------------------
+
+    getAllTickets: () => {
+        return API.get("/admin/support");
+    },
+
+    getAdminTickets: () => {
+        return API.get("/admin/support");
+    },
+
+    getAdminTicket: (id) => {
+        return API.get(
+            `/admin/support/${id}`
+        );
+    },
+
+    updateTicket: (id, data) => {
+        return API.put(
+            `/admin/support/${id}`,
+            data
+        );
+    },
+
+    replyToTicket: (id, data) => {
+        return API.post(
+            `/admin/support/${id}/messages`,
+            data
+        );
+    },
+
+    addAdminMessage: (id, data) => {
+        return API.post(
+            `/admin/support/${id}/messages`,
+            data
+        );
+    }
+};
 
 // ============================================================
 // REVIEW API
@@ -128,213 +188,66 @@ API.interceptors.response.use(
 
 export const reviewApi = {
 
-    // ----------------------------------------------------------
+    // --------------------------------------------------------
     // GET RESTAURANT REVIEWS
-    // ----------------------------------------------------------
+    // --------------------------------------------------------
 
     getRestaurantReviews: (restaurantId) => {
-
         return API.get(
             `/reviews/restaurant/${restaurantId}`
         );
     },
 
-    // ----------------------------------------------------------
-    // ADD REVIEW
-    // ----------------------------------------------------------
+    // --------------------------------------------------------
+    // GET FOOD REVIEWS
+    // --------------------------------------------------------
 
-    addReview: (reviewData) => {
+    getFoodReviews: (foodId) => {
+        return API.get(
+            `/reviews/food/${foodId}`
+        );
+    },
 
+    // --------------------------------------------------------
+    // CREATE REVIEW
+    // --------------------------------------------------------
+
+    createReview: (data) => {
         return API.post(
             "/reviews",
-            reviewData
+            data
         );
     },
 
-    // ----------------------------------------------------------
-    // GET MY REVIEWS
-    // ----------------------------------------------------------
+    // --------------------------------------------------------
+    // UPDATE REVIEW
+    // --------------------------------------------------------
+
+    updateReview: (id, data) => {
+        return API.put(
+            `/reviews/${id}`,
+            data
+        );
+    },
+
+    // --------------------------------------------------------
+    // DELETE REVIEW
+    // --------------------------------------------------------
+
+    deleteReview: (id) => {
+        return API.delete(
+            `/reviews/${id}`
+        );
+    },
+
+    // --------------------------------------------------------
+    // MY REVIEWS
+    // --------------------------------------------------------
 
     getMyReviews: () => {
-
-        return API.get(
-            "/reviews/my"
-        );
-    },
-
-    // ----------------------------------------------------------
-    // GET ALL REVIEWS
-    // ----------------------------------------------------------
-
-    getAllReviews: () => {
-
-        return API.get(
-            "/reviews"
-        );
-    },
-
-    // ----------------------------------------------------------
-    // GET REVIEW BY ID
-    // ----------------------------------------------------------
-
-    getReviewById: (reviewId) => {
-
-        return API.get(
-            `/reviews/${reviewId}`
-        );
-    },
-
-    // ----------------------------------------------------------
-    // UPDATE REVIEW
-    // ----------------------------------------------------------
-
-    updateReview: (
-        reviewId,
-        reviewData
-    ) => {
-
-        return API.put(
-            `/reviews/${reviewId}`,
-            reviewData
-        );
-    },
-
-    // ----------------------------------------------------------
-    // DELETE REVIEW
-    // ----------------------------------------------------------
-
-    deleteReview: (reviewId) => {
-
-        return API.delete(
-            `/reviews/${reviewId}`
-        );
+        return API.get("/reviews/my");
     }
-
 };
-
-
-// ============================================================
-// SUPPORT API
-// ============================================================
-
-export const supportApi = {
-
-    // ----------------------------------------------------------
-    // CREATE SUPPORT TICKET
-    // ----------------------------------------------------------
-
-    createTicket: (ticketData) => {
-
-        return API.post(
-            "/support/tickets",
-            ticketData
-        );
-    },
-
-    // ----------------------------------------------------------
-    // GET MY SUPPORT TICKETS
-    // ----------------------------------------------------------
-
-    getMyTickets: () => {
-
-        return API.get(
-            "/support/tickets/my"
-        );
-    },
-
-    // ----------------------------------------------------------
-    // GET SUPPORT TICKET BY ID
-    // ----------------------------------------------------------
-
-    getTicketById: (ticketId) => {
-
-        return API.get(
-            `/support/tickets/${ticketId}`
-        );
-    },
-
-    // ----------------------------------------------------------
-    // ADD USER MESSAGE
-    // ----------------------------------------------------------
-
-    addMessage: (
-        ticketId,
-        messageData
-    ) => {
-
-        return API.post(
-            `/support/tickets/${ticketId}/messages`,
-            messageData
-        );
-    },
-
-    // ----------------------------------------------------------
-    // GET TICKET MESSAGES
-    // ----------------------------------------------------------
-
-    getMessages: (ticketId) => {
-
-        return API.get(
-            `/support/tickets/${ticketId}/messages`
-        );
-    },
-
-    // ----------------------------------------------------------
-    // CLOSE TICKET
-    // ----------------------------------------------------------
-
-    closeTicket: (ticketId) => {
-
-        return API.put(
-            `/support/tickets/${ticketId}/close`
-        );
-    },
-
-    // ----------------------------------------------------------
-    // ADMIN - GET ALL TICKETS
-    // ----------------------------------------------------------
-
-    getAllTickets: () => {
-
-        return API.get(
-            "/support/tickets"
-        );
-    },
-
-    // ----------------------------------------------------------
-    // ADMIN - UPDATE TICKET STATUS
-    // ----------------------------------------------------------
-
-    updateTicketStatus: (
-        ticketId,
-        status
-    ) => {
-
-        return API.put(
-            `/support/tickets/${ticketId}/status`,
-            {
-                status
-            }
-        );
-    },
-
-    // ----------------------------------------------------------
-    // ADMIN - ADD ADMIN MESSAGE
-    // ----------------------------------------------------------
-
-    addAdminMessage: (
-        ticketId,
-        messageData
-    ) => {
-
-        return API.post(
-            `/support/tickets/${ticketId}/admin-message`,
-            messageData
-        );
-    }
-
-};
-
 
 // ============================================================
 // DEFAULT EXPORT
