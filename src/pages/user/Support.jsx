@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supportApi } from "../../services/ApiService";
 import "./Support.css";
 
 function Support() {
 
-    const navigate = useNavigate();
+    // =========================================================
+    // STATE
+    // =========================================================
 
     const [tickets, setTickets] = useState([]);
     const [selectedTicket, setSelectedTicket] = useState(null);
@@ -31,7 +32,7 @@ function Support() {
     const [reply, setReply] = useState("");
 
     // =========================================================
-    // GET ROLE
+    // ROLE
     // =========================================================
 
     const savedRole =
@@ -41,15 +42,20 @@ function Support() {
         .replace("ROLE_", "")
         .toUpperCase();
 
-    const isOwner = role === "RESTAURANT_OWNER";
+    const isOwner =
+        role === "RESTAURANT_OWNER";
 
     // =========================================================
-    // LOAD TICKETS
+    // LOAD TICKETS WHEN PAGE OPENS
     // =========================================================
 
     useEffect(() => {
         loadTickets();
     }, []);
+
+    // =========================================================
+    // LOAD MY TICKETS
+    // =========================================================
 
     const loadTickets = async () => {
 
@@ -58,28 +64,46 @@ function Support() {
             setLoading(true);
             setError("");
 
+            console.log(
+                "SUPPORT: Loading tickets..."
+            );
+
             const response =
                 await supportApi.getMyTickets();
 
-            const data = response.data;
-
-            setTickets(
-                Array.isArray(data)
-                    ? data
-                    : []
+            console.log(
+                "SUPPORT: Tickets response:",
+                response
             );
+
+            const data = response?.data;
+
+            if (Array.isArray(data)) {
+                setTickets(data);
+            } else {
+                setTickets([]);
+            }
 
         } catch (err) {
 
             console.error(
-                "Failed to load support tickets:",
+                "SUPPORT: Failed to load tickets:",
                 err
             );
 
-            setError(
-                err.response?.data?.message ||
-                "Unable to load your support tickets."
-            );
+            if (err.response?.status === 404) {
+
+                setError(
+                    "Support API was not found on the backend. Please make sure the latest backend deployment is running."
+                );
+
+            } else {
+
+                setError(
+                    err.response?.data?.message ||
+                    "Unable to load your support tickets."
+                );
+            }
 
         } finally {
 
@@ -88,10 +112,14 @@ function Support() {
     };
 
     // =========================================================
-    // LOAD SINGLE TICKET
+    // OPEN SINGLE TICKET
     // =========================================================
 
     const openTicket = async (ticketId) => {
+
+        if (!ticketId) {
+            return;
+        }
 
         try {
 
@@ -99,15 +127,29 @@ function Support() {
             setError("");
             setSuccess("");
 
-            const response =
-                await supportApi.getMyTicket(ticketId);
+            console.log(
+                "SUPPORT: Opening ticket:",
+                ticketId
+            );
 
-            setSelectedTicket(response.data);
+            const response =
+                await supportApi.getMyTicket(
+                    ticketId
+                );
+
+            console.log(
+                "SUPPORT: Ticket response:",
+                response
+            );
+
+            setSelectedTicket(
+                response?.data || null
+            );
 
         } catch (err) {
 
             console.error(
-                "Failed to load ticket:",
+                "SUPPORT: Failed to load ticket:",
                 err
             );
 
@@ -130,40 +172,99 @@ function Support() {
 
         event.preventDefault();
 
-        if (!newTicket.subject.trim()) {
-            setError("Please enter a subject.");
+        setError("");
+        setSuccess("");
+
+        // -----------------------------------------------------
+        // VALIDATION
+        // -----------------------------------------------------
+
+        const subject =
+            newTicket.subject.trim();
+
+        const description =
+            newTicket.description.trim();
+
+        if (!subject) {
+
+            setError(
+                "Please enter a subject."
+            );
+
             return;
         }
 
-        if (!newTicket.description.trim()) {
-            setError("Please describe your problem.");
+        if (!description) {
+
+            setError(
+                "Please describe your problem."
+            );
+
             return;
         }
 
         try {
 
             setCreating(true);
-            setError("");
-            setSuccess("");
+
+            // -------------------------------------------------
+            // REQUEST DATA
+            // -------------------------------------------------
+
+            const ticketData = {
+                subject: subject,
+                description: description,
+                category: newTicket.category,
+                priority: newTicket.priority
+            };
+
+            console.log(
+                "================================================="
+            );
+
+            console.log(
+                "SUPPORT: CREATING TICKET"
+            );
+
+            console.log(
+                "SUPPORT DATA:",
+                ticketData
+            );
+
+            console.log(
+                "SUPPORT API METHOD:",
+                "supportApi.createTicket"
+            );
+
+            console.log(
+                "================================================="
+            );
+
+            // -------------------------------------------------
+            // CREATE THROUGH ApiService
+            // -------------------------------------------------
 
             const response =
-                await supportApi.createTicket({
-                    subject:
-                        newTicket.subject.trim(),
+                await supportApi.createTicket(
+                    ticketData
+                );
 
-                    description:
-                        newTicket.description.trim(),
+            console.log(
+                "SUPPORT: CREATE RESPONSE:",
+                response
+            );
 
-                    category:
-                        newTicket.category,
-
-                    priority:
-                        newTicket.priority
-                });
+            // -------------------------------------------------
+            // SUCCESS
+            // -------------------------------------------------
 
             setSuccess(
                 "Support ticket created successfully."
             );
+
+            // -------------------------------------------------
+            // RESET FORM
+            // -------------------------------------------------
 
             setNewTicket({
                 subject: "",
@@ -174,9 +275,18 @@ function Support() {
 
             setShowCreateForm(false);
 
+            // -------------------------------------------------
+            // RELOAD TICKETS
+            // -------------------------------------------------
+
             await loadTickets();
 
-            if (response.data?.id) {
+            // -------------------------------------------------
+            // SELECT NEW TICKET
+            // -------------------------------------------------
+
+            if (response?.data?.id) {
+
                 setSelectedTicket(
                     response.data
                 );
@@ -185,14 +295,33 @@ function Support() {
         } catch (err) {
 
             console.error(
-                "Failed to create ticket:",
+                "SUPPORT: Failed to create ticket:",
                 err
             );
 
-            setError(
-                err.response?.data?.message ||
-                "Unable to create your support ticket."
+            console.error(
+                "SUPPORT STATUS:",
+                err.response?.status
             );
+
+            console.error(
+                "SUPPORT RESPONSE:",
+                err.response?.data
+            );
+
+            if (err.response?.status === 404) {
+
+                setError(
+                    "Create Ticket API returned 404. The deployed backend does not currently expose /api/support/tickets."
+                );
+
+            } else {
+
+                setError(
+                    err.response?.data?.message ||
+                    "Unable to create your support ticket."
+                );
+            }
 
         } finally {
 
@@ -201,7 +330,7 @@ function Support() {
     };
 
     // =========================================================
-    // REPLY
+    // SEND USER REPLY
     // =========================================================
 
     const handleReply = async (event) => {
@@ -212,16 +341,22 @@ function Support() {
             return;
         }
 
-        if (!reply.trim()) {
+        const message =
+            reply.trim();
+
+        if (!message) {
             return;
         }
 
         if (
-            selectedTicket.status === "CLOSED"
+            selectedTicket.status?.toUpperCase() ===
+            "CLOSED"
         ) {
+
             setError(
                 "This ticket is closed and cannot receive replies."
             );
+
             return;
         }
 
@@ -231,10 +366,15 @@ function Support() {
             setError("");
             setSuccess("");
 
+            console.log(
+                "SUPPORT: Sending reply:",
+                selectedTicket.id
+            );
+
             await supportApi.addUserMessage(
                 selectedTicket.id,
                 {
-                    message: reply.trim()
+                    message: message
                 }
             );
 
@@ -253,7 +393,7 @@ function Support() {
         } catch (err) {
 
             console.error(
-                "Failed to send reply:",
+                "SUPPORT: Failed to send reply:",
                 err
             );
 
@@ -344,19 +484,45 @@ function Support() {
                 );
 
         } catch {
+
             return value;
         }
     };
 
     // =========================================================
-    // UI
+    // CLOSE CREATE FORM
+    // =========================================================
+
+    const closeCreateForm = () => {
+
+        if (creating) {
+            return;
+        }
+
+        setShowCreateForm(false);
+        setError("");
+    };
+
+    // =========================================================
+    // OPEN CREATE FORM
+    // =========================================================
+
+    const openCreateForm = () => {
+
+        setError("");
+        setSuccess("");
+        setShowCreateForm(true);
+    };
+
+    // =========================================================
+    // RENDER
     // =========================================================
 
     return (
         <div className="support-page">
 
             {/* =================================================
-                HEADER
+                HERO
             ================================================= */}
 
             <section className="support-hero">
@@ -366,6 +532,7 @@ function Support() {
                 </div>
 
                 <div>
+
                     <span className="support-eyebrow">
                         BPR FLAVORS HUB
                     </span>
@@ -380,13 +547,13 @@ function Support() {
                             : "We're here to help with orders, payments, refunds, restaurants, accounts and technical problems."
                         }
                     </p>
+
                 </div>
 
                 <button
+                    type="button"
                     className="support-new-ticket-btn"
-                    onClick={() =>
-                        setShowCreateForm(true)
-                    }
+                    onClick={openCreateForm}
                 >
                     + Create Ticket
                 </button>
@@ -394,18 +561,40 @@ function Support() {
             </section>
 
             {/* =================================================
-                ALERTS
+                ERROR
             ================================================= */}
 
             {error && (
+
                 <div className="support-alert support-alert-error">
-                    {error}
+
+                    <span>
+                        ⚠️
+                    </span>
+
+                    <span>
+                        {error}
+                    </span>
+
                 </div>
             )}
 
+            {/* =================================================
+                SUCCESS
+            ================================================= */}
+
             {success && (
+
                 <div className="support-alert support-alert-success">
-                    {success}
+
+                    <span>
+                        ✓
+                    </span>
+
+                    <span>
+                        {success}
+                    </span>
+
                 </div>
             )}
 
@@ -420,6 +609,7 @@ function Support() {
                     <div className="support-section-heading">
 
                         <div>
+
                             <span>
                                 NEW REQUEST
                             </span>
@@ -427,13 +617,13 @@ function Support() {
                             <h2>
                                 Tell us what happened
                             </h2>
+
                         </div>
 
                         <button
+                            type="button"
                             className="support-close-btn"
-                            onClick={() =>
-                                setShowCreateForm(false)
-                            }
+                            onClick={closeCreateForm}
                         >
                             ×
                         </button>
@@ -445,6 +635,8 @@ function Support() {
                         onSubmit={handleCreateTicket}
                     >
 
+                        {/* SUBJECT */}
+
                         <div className="support-form-group">
 
                             <label>
@@ -455,16 +647,21 @@ function Support() {
                                 type="text"
                                 placeholder="Example: Payment deducted but order not created"
                                 value={newTicket.subject}
+                                disabled={creating}
                                 onChange={(event) =>
-                                    setNewTicket({
-                                        ...newTicket,
-                                        subject:
-                                            event.target.value
-                                    })
+                                    setNewTicket(
+                                        (previous) => ({
+                                            ...previous,
+                                            subject:
+                                                event.target.value
+                                        })
+                                    )
                                 }
                             />
 
                         </div>
+
+                        {/* CATEGORY + PRIORITY */}
 
                         <div className="support-form-row">
 
@@ -478,12 +675,15 @@ function Support() {
                                     value={
                                         newTicket.category
                                     }
+                                    disabled={creating}
                                     onChange={(event) =>
-                                        setNewTicket({
-                                            ...newTicket,
-                                            category:
-                                                event.target.value
-                                        })
+                                        setNewTicket(
+                                            (previous) => ({
+                                                ...previous,
+                                                category:
+                                                    event.target.value
+                                            })
+                                        )
                                     }
                                 >
 
@@ -537,12 +737,15 @@ function Support() {
                                     value={
                                         newTicket.priority
                                     }
+                                    disabled={creating}
                                     onChange={(event) =>
-                                        setNewTicket({
-                                            ...newTicket,
-                                            priority:
-                                                event.target.value
-                                        })
+                                        setNewTicket(
+                                            (previous) => ({
+                                                ...previous,
+                                                priority:
+                                                    event.target.value
+                                            })
+                                        )
                                     }
                                 >
 
@@ -568,6 +771,8 @@ function Support() {
 
                         </div>
 
+                        {/* DESCRIPTION */}
+
                         <div className="support-form-group">
 
                             <label>
@@ -580,25 +785,29 @@ function Support() {
                                 value={
                                     newTicket.description
                                 }
+                                disabled={creating}
                                 onChange={(event) =>
-                                    setNewTicket({
-                                        ...newTicket,
-                                        description:
-                                            event.target.value
-                                    })
+                                    setNewTicket(
+                                        (previous) => ({
+                                            ...previous,
+                                            description:
+                                                event.target.value
+                                        })
+                                    )
                                 }
                             />
 
                         </div>
+
+                        {/* FORM BUTTONS */}
 
                         <div className="support-form-actions">
 
                             <button
                                 type="button"
                                 className="support-secondary-btn"
-                                onClick={() =>
-                                    setShowCreateForm(false)
-                                }
+                                disabled={creating}
+                                onClick={closeCreateForm}
                             >
                                 Cancel
                             </button>
@@ -628,7 +837,7 @@ function Support() {
             <div className="support-content">
 
                 {/* =================================================
-                    TICKETS LIST
+                    TICKETS
                 ================================================= */}
 
                 <section className="support-card support-tickets-card">
@@ -636,6 +845,7 @@ function Support() {
                     <div className="support-section-heading">
 
                         <div>
+
                             <span>
                                 YOUR SUPPORT REQUESTS
                             </span>
@@ -643,6 +853,7 @@ function Support() {
                             <h2>
                                 My Tickets
                             </h2>
+
                         </div>
 
                         <div className="support-ticket-count">
@@ -651,17 +862,23 @@ function Support() {
 
                     </div>
 
+                    {/* LOADING */}
+
                     {loading ? (
 
                         <div className="support-empty-state">
+
                             <div className="support-spinner"></div>
 
                             <p>
                                 Loading your tickets...
                             </p>
+
                         </div>
 
                     ) : tickets.length === 0 ? (
+
+                        /* EMPTY */
 
                         <div className="support-empty-state">
 
@@ -679,10 +896,9 @@ function Support() {
                             </p>
 
                             <button
+                                type="button"
                                 className="support-primary-btn"
-                                onClick={() =>
-                                    setShowCreateForm(true)
-                                }
+                                onClick={openCreateForm}
                             >
                                 Create Your First Ticket
                             </button>
@@ -691,76 +907,86 @@ function Support() {
 
                     ) : (
 
+                        /* LIST */
+
                         <div className="support-ticket-list">
 
-                            {tickets.map((ticket) => (
+                            {tickets.map(
+                                (ticket) => (
 
-                                <button
-                                    key={ticket.id}
-                                    className={`support-ticket-item ${
-                                        selectedTicket?.id ===
-                                        ticket.id
-                                            ? "active"
-                                            : ""
-                                    }`}
-                                    onClick={() =>
-                                        openTicket(
+                                    <button
+                                        type="button"
+                                        key={ticket.id}
+                                        className={`support-ticket-item ${
+                                            selectedTicket?.id ===
                                             ticket.id
-                                        )
-                                    }
-                                >
+                                                ? "active"
+                                                : ""
+                                        }`}
+                                        onClick={() =>
+                                            openTicket(
+                                                ticket.id
+                                            )
+                                        }
+                                    >
 
-                                    <div className="support-ticket-main">
+                                        <div className="support-ticket-main">
 
-                                        <div className="support-ticket-number">
-                                            #{ticket.id}
+                                            <div className="support-ticket-number">
+                                                #{ticket.id}
+                                            </div>
+
+                                            <div>
+
+                                                <h3>
+                                                    {ticket.subject}
+                                                </h3>
+
+                                                <p>
+                                                    {
+                                                        ticket.category
+                                                    }
+
+                                                    {" · "}
+
+                                                    {formatDate(
+                                                        ticket.createdAt
+                                                    )}
+                                                </p>
+
+                                            </div>
+
                                         </div>
 
-                                        <div>
-                                            <h3>
-                                                {ticket.subject}
-                                            </h3>
+                                        <div className="support-ticket-meta">
 
-                                            <p>
-                                                {ticket.category}
-                                                {" · "}
-                                                {formatDate(
-                                                    ticket.createdAt
-                                                )}
-                                            </p>
+                                            <span
+                                                className={`support-badge ${getPriorityClass(
+                                                    ticket.priority
+                                                )}`}
+                                            >
+                                                {
+                                                    ticket.priority
+                                                }
+                                            </span>
+
+                                            <span
+                                                className={`support-badge ${getStatusClass(
+                                                    ticket.status
+                                                )}`}
+                                            >
+                                                {ticket.status
+                                                    ?.replaceAll(
+                                                        "_",
+                                                        " "
+                                                    )}
+                                            </span>
+
                                         </div>
 
-                                    </div>
-
-                                    <div className="support-ticket-meta">
-
-                                        <span
-                                            className={`support-badge ${getPriorityClass(
-                                                ticket.priority
-                                            )}`}
-                                        >
-                                            {
-                                                ticket.priority
-                                            }
-                                        </span>
-
-                                        <span
-                                            className={`support-badge ${getStatusClass(
-                                                ticket.status
-                                            )}`}
-                                        >
-                                            {ticket.status
-                                                ?.replace(
-                                                    "_",
-                                                    " "
-                                                )}
-                                        </span>
-
-                                    </div>
-
-                                </button>
-
-                            ))}
+                                    </button>
+                                )
+                            )}
 
                         </div>
                     )}
@@ -776,10 +1002,13 @@ function Support() {
                     {ticketLoading ? (
 
                         <div className="support-empty-state">
+
                             <div className="support-spinner"></div>
+
                             <p>
                                 Loading conversation...
                             </p>
+
                         </div>
 
                     ) : !selectedTicket ? (
@@ -805,7 +1034,9 @@ function Support() {
 
                         <>
 
-                            {/* Conversation header */}
+                            {/* =================================
+                                CONVERSATION HEADER
+                            ================================= */}
 
                             <div className="support-conversation-header">
 
@@ -832,7 +1063,7 @@ function Support() {
                                         )}`}
                                     >
                                         {selectedTicket.status
-                                            ?.replace(
+                                            ?.replaceAll(
                                                 "_",
                                                 " "
                                             )}
@@ -842,40 +1073,46 @@ function Support() {
 
                             </div>
 
-                            {/* Ticket information */}
+                            {/* =================================
+                                TICKET INFO
+                            ================================= */}
 
                             <div className="support-ticket-info">
 
                                 <div>
+
                                     <span>
                                         Category
                                     </span>
+
                                     <strong>
                                         {
                                             selectedTicket.category
                                         }
                                     </strong>
+
                                 </div>
 
                                 <div>
+
                                     <span>
                                         Priority
                                     </span>
 
                                     <strong
-                                        className={
-                                            getPriorityClass(
-                                                selectedTicket.priority
-                                            )
-                                        }
+                                        className={getPriorityClass(
+                                            selectedTicket.priority
+                                        )}
                                     >
                                         {
                                             selectedTicket.priority
                                         }
                                     </strong>
+
                                 </div>
 
                                 <div>
+
                                     <span>
                                         Created
                                     </span>
@@ -885,11 +1122,14 @@ function Support() {
                                             selectedTicket.createdAt
                                         )}
                                     </strong>
+
                                 </div>
 
                             </div>
 
-                            {/* Description */}
+                            {/* =================================
+                                ORIGINAL PROBLEM
+                            ================================= */}
 
                             <div className="support-original-problem">
 
@@ -905,70 +1145,78 @@ function Support() {
 
                             </div>
 
-                            {/* Messages */}
+                            {/* =================================
+                                MESSAGES
+                            ================================= */}
 
                             <div className="support-messages">
 
-                                {selectedTicket.messages?.map(
-                                    (message) => {
+                                {Array.isArray(
+                                    selectedTicket.messages
+                                ) &&
+                                    selectedTicket.messages.map(
+                                        (message) => {
 
-                                        const isAdmin =
-                                            message.senderRole
-                                                ?.toUpperCase() ===
-                                            "ADMIN";
+                                            const isAdmin =
+                                                message.senderRole
+                                                    ?.toUpperCase() ===
+                                                "ADMIN";
 
-                                        return (
-                                            <div
-                                                key={
-                                                    message.id
-                                                }
-                                                className={`support-message-row ${
-                                                    isAdmin
-                                                        ? "admin"
-                                                        : "user"
-                                                }`}
-                                            >
+                                            return (
 
-                                                <div className="support-message-bubble">
+                                                <div
+                                                    key={
+                                                        message.id
+                                                    }
+                                                    className={`support-message-row ${
+                                                        isAdmin
+                                                            ? "admin"
+                                                            : "user"
+                                                    }`}
+                                                >
 
-                                                    <div className="support-message-author">
+                                                    <div className="support-message-bubble">
 
-                                                        <strong>
-                                                            {message.senderName}
-                                                        </strong>
+                                                        <div className="support-message-author">
 
-                                                        <span>
-                                                            {
-                                                                isAdmin
+                                                            <strong>
+                                                                {
+                                                                    message.senderName
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {isAdmin
                                                                     ? "ADMIN"
-                                                                    : "YOU"
+                                                                    : "YOU"}
+                                                            </span>
+
+                                                        </div>
+
+                                                        <p>
+                                                            {
+                                                                message.message
                                                             }
-                                                        </span>
+                                                        </p>
+
+                                                        <small>
+                                                            {formatDate(
+                                                                message.createdAt
+                                                            )}
+                                                        </small>
 
                                                     </div>
 
-                                                    <p>
-                                                        {
-                                                            message.message
-                                                        }
-                                                    </p>
-
-                                                    <small>
-                                                        {formatDate(
-                                                            message.createdAt
-                                                        )}
-                                                    </small>
-
                                                 </div>
-
-                                            </div>
-                                        );
-                                    }
-                                )}
+                                            );
+                                        }
+                                    )}
 
                             </div>
 
-                            {/* Resolution */}
+                            {/* =================================
+                                RESOLUTION
+                            ================================= */}
 
                             {selectedTicket.resolution && (
 
@@ -979,6 +1227,7 @@ function Support() {
                                     </div>
 
                                     <div>
+
                                         <span>
                                             RESOLUTION
                                         </span>
@@ -988,15 +1237,18 @@ function Support() {
                                                 selectedTicket.resolution
                                             }
                                         </p>
+
                                     </div>
 
                                 </div>
                             )}
 
-                            {/* Reply */}
+                            {/* =================================
+                                REPLY
+                            ================================= */}
 
-                            {selectedTicket.status !==
-                                "CLOSED" ? (
+                            {selectedTicket.status?.toUpperCase() !==
+                            "CLOSED" ? (
 
                                 <form
                                     className="support-reply-form"
@@ -1007,10 +1259,10 @@ function Support() {
                                         rows="3"
                                         placeholder="Write a reply to support..."
                                         value={reply}
+                                        disabled={sending}
                                         onChange={(event) =>
                                             setReply(
-                                                event.target
-                                                    .value
+                                                event.target.value
                                             )
                                         }
                                     />
@@ -1025,8 +1277,7 @@ function Support() {
                                     >
                                         {sending
                                             ? "Sending..."
-                                            : "Send Reply →"
-                                        }
+                                            : "Send Reply →"}
                                     </button>
 
                                 </form>
@@ -1034,15 +1285,15 @@ function Support() {
                             ) : (
 
                                 <div className="support-closed-message">
+
                                     🔒 This ticket is closed.
                                     You can create a new ticket
                                     for another problem.
-                                </div>
 
+                                </div>
                             )}
 
                         </>
-
                     )}
 
                 </section>
