@@ -13,7 +13,7 @@ const API_BASE_URL =
 // =========================================================
 
 const API = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: API_BASE_URL.replace(/\/+$/, ""),
     headers: {
         "Content-Type": "application/json"
     }
@@ -26,14 +26,18 @@ const API = axios.create({
 API.interceptors.request.use(
     (config) => {
 
-        const token =
-            localStorage.getItem("token");
+        const token = localStorage.getItem("token");
 
         if (token) {
-
-            config.headers.Authorization =
-                `Bearer ${token}`;
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
         }
+
+        console.log(
+            "API REQUEST:",
+            config.method?.toUpperCase(),
+            config.baseURL + config.url
+        );
 
         return config;
     },
@@ -49,7 +53,16 @@ API.interceptors.request.use(
 
 API.interceptors.response.use(
 
-    (response) => response,
+    (response) => {
+
+        console.log(
+            "API RESPONSE:",
+            response.status,
+            response.config?.url
+        );
+
+        return response;
+    },
 
     (error) => {
 
@@ -60,18 +73,15 @@ API.interceptors.response.use(
         );
 
         if (error.response?.status === 401) {
-
             console.warn(
                 "Authentication expired or invalid."
             );
-
-            // Do not automatically remove token here.
-            // Your application may want to handle logout itself.
         }
 
         return Promise.reject(error);
     }
 );
+
 
 // =========================================================
 // AUTH API
@@ -88,6 +98,7 @@ export const authApi = {
     getProfile: () =>
         API.get("/users/profile")
 };
+
 
 // =========================================================
 // RESTAURANT API
@@ -111,6 +122,7 @@ export const restaurantApi = {
         API.delete(`/restaurants/${id}`)
 };
 
+
 // =========================================================
 // FOOD API
 // =========================================================
@@ -124,9 +136,7 @@ export const foodApi = {
         API.get(`/foods/${id}`),
 
     getByRestaurant: (restaurantId) =>
-        API.get(
-            `/foods/restaurant/${restaurantId}`
-        ),
+        API.get(`/foods/restaurant/${restaurantId}`),
 
     create: (data) =>
         API.post("/foods", data),
@@ -137,6 +147,7 @@ export const foodApi = {
     delete: (id) =>
         API.delete(`/foods/${id}`)
 };
+
 
 // =========================================================
 // CART API
@@ -163,6 +174,7 @@ export const cartApi = {
         API.delete("/cart/clear")
 };
 
+
 // =========================================================
 // ORDER API
 // =========================================================
@@ -182,6 +194,7 @@ export const orderApi = {
         API.put(`/orders/${id}/cancel`)
 };
 
+
 // =========================================================
 // REVIEW API
 // =========================================================
@@ -194,60 +207,99 @@ export const reviewApi = {
         ),
 
     create: (data) =>
-        API.post("/reviews", data),
+        API.post(
+            "/reviews",
+            data
+        ),
 
     update: (id, data) =>
-        API.put(`/reviews/${id}`, data),
+        API.put(
+            `/reviews/${id}`,
+            data
+        ),
 
     delete: (id) =>
-        API.delete(`/reviews/${id}`)
+        API.delete(
+            `/reviews/${id}`
+        )
 };
+
 
 // =========================================================
 // SUPPORT API
-// IMPORTANT
-// Backend SupportController:
-// @RequestMapping("/api/support")
 // =========================================================
 
 export const supportApi = {
 
-    // ---------------------------------------------------------
-    // CUSTOMER / OWNER
-    // ---------------------------------------------------------
+    // =====================================================
+    // CUSTOMER / RESTAURANT OWNER
+    // =====================================================
 
-    createTicket: (data) =>
-        API.post(
+    createTicket: (data) => {
+
+        console.log(
+            "CREATE SUPPORT TICKET:",
             "/support/tickets",
             data
-        ),
+        );
 
-    getMyTickets: () =>
-        API.get(
+        return API.post(
+            "/support/tickets",
+            data
+        );
+    },
+
+    getMyTickets: () => {
+
+        console.log(
+            "GET MY SUPPORT TICKETS:",
             "/support/tickets"
-        ),
+        );
 
-    getMyTicket: (ticketId) =>
-        API.get(
+        return API.get(
+            "/support/tickets"
+        );
+    },
+
+    getMyTicket: (ticketId) => {
+
+        console.log(
+            "GET SUPPORT TICKET:",
             `/support/tickets/${ticketId}`
-        ),
+        );
+
+        return API.get(
+            `/support/tickets/${ticketId}`
+        );
+    },
 
     addUserMessage: (
         ticketId,
         data
-    ) =>
-        API.post(
+    ) => {
+
+        console.log(
+            "ADD USER SUPPORT MESSAGE:",
             `/support/tickets/${ticketId}/messages`,
             data
-        ),
+        );
 
-    // ---------------------------------------------------------
+        return API.post(
+            `/support/tickets/${ticketId}/messages`,
+            data
+        );
+    },
+
+
+    // =====================================================
     // ADMIN
-    // ---------------------------------------------------------
+    // =====================================================
 
-    getAllTickets: (
-        status = ""
-    ) => {
+    getAllTickets: (status = "") => {
+
+        console.log(
+            "GET ADMIN SUPPORT TICKETS"
+        );
 
         if (status) {
 
@@ -266,44 +318,57 @@ export const supportApi = {
         );
     },
 
-    getAdminTicket: (ticketId) =>
-        API.get(
+    getAdminTicket: (ticketId) => {
+
+        return API.get(
             `/admin/support/${ticketId}`
-        ),
+        );
+    },
 
     addAdminMessage: (
         ticketId,
         data
-    ) =>
-        API.post(
+    ) => {
+
+        return API.post(
             `/admin/support/${ticketId}/messages`,
             data
-        ),
+        );
+    },
 
     updateTicket: (
         ticketId,
         data
-    ) =>
-        API.put(
+    ) => {
+
+        return API.put(
             `/admin/support/${ticketId}`,
             data
-        ),
+        );
+    },
 
-    closeTicket: (ticketId) =>
-        API.put(
+    closeTicket: (ticketId) => {
+
+        return API.put(
             `/admin/support/${ticketId}/close`
-        ),
+        );
+    },
 
-    reopenTicket: (ticketId) =>
-        API.put(
+    reopenTicket: (ticketId) => {
+
+        return API.put(
             `/admin/support/${ticketId}/reopen`
-        ),
+        );
+    },
 
-    deleteTicket: (ticketId) =>
-        API.delete(
+    deleteTicket: (ticketId) => {
+
+        return API.delete(
             `/admin/support/${ticketId}`
-        )
+        );
+    }
 };
+
 
 // =========================================================
 // USER API
@@ -320,6 +385,7 @@ export const userApi = {
             data
         )
 };
+
 
 // =========================================================
 // ADMIN API
@@ -342,6 +408,7 @@ export const adminApi = {
     getOrders: () =>
         API.get("/admin/orders")
 };
+
 
 // =========================================================
 // OWNER API
@@ -367,6 +434,7 @@ export const ownerApi = {
     getOrders: () =>
         API.get("/owner/orders")
 };
+
 
 // =========================================================
 // DEFAULT EXPORT
