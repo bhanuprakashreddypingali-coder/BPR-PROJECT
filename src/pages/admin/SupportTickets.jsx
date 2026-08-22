@@ -13,6 +13,7 @@ function SupportTickets() {
     const [ticketLoading, setTicketLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
@@ -26,7 +27,7 @@ function SupportTickets() {
     });
 
     // =========================================================
-    // LOAD
+    // LOAD TICKETS
     // =========================================================
 
     useEffect(() => {
@@ -45,23 +46,49 @@ function SupportTickets() {
                     statusFilter
                 );
 
+            const data = response?.data;
+
             setTickets(
-                Array.isArray(response.data)
-                    ? response.data
+                Array.isArray(data)
+                    ? data
                     : []
             );
 
         } catch (err) {
 
             console.error(
-                "Failed to load tickets:",
+                "Failed to load support tickets:",
                 err
             );
 
-            setError(
-                err.response?.data?.message ||
-                "Unable to load support tickets."
-            );
+            if (err.response?.status === 401) {
+
+                setError(
+                    "Your admin session has expired. Please login again."
+                );
+
+            } else if (err.response?.status === 403) {
+
+                setError(
+                    "Access denied. Admin permission is required."
+                );
+
+            } else if (err.response?.status === 404) {
+
+                setError(
+                    "Support API endpoint was not found. Check the backend deployment."
+                );
+
+            } else {
+
+                setError(
+                    err.response?.data?.message ||
+                    err.response?.data ||
+                    "Unable to load support tickets."
+                );
+            }
+
+            setTickets([]);
 
         } finally {
 
@@ -86,23 +113,35 @@ function SupportTickets() {
                     ticketId
                 );
 
-            const ticket = response.data;
+            const ticket = response?.data;
+
+            if (!ticket) {
+
+                throw new Error(
+                    "Ticket data was not returned."
+                );
+            }
 
             setSelectedTicket(ticket);
 
             setUpdateData({
-                status: ticket.status || "",
-                priority: ticket.priority || "",
-                resolution:
-                    ticket.resolution || ""
+                status: ticket.status || "OPEN",
+                priority: ticket.priority || "MEDIUM",
+                resolution: ticket.resolution || ""
             });
+
+            setReply("");
 
         } catch (err) {
 
-            console.error(err);
+            console.error(
+                "Failed to load ticket:",
+                err
+            );
 
             setError(
                 err.response?.data?.message ||
+                err.response?.data ||
                 "Unable to load ticket."
             );
 
@@ -120,11 +159,19 @@ function SupportTickets() {
 
         event.preventDefault();
 
-        if (!selectedTicket || !reply.trim()) {
+        if (!selectedTicket) {
             return;
         }
 
-        if (selectedTicket.status === "CLOSED") {
+        if (!reply.trim()) {
+            setError("Please enter a reply.");
+            return;
+        }
+
+        if (
+            selectedTicket.status?.toUpperCase() ===
+            "CLOSED"
+        ) {
 
             setError(
                 "This ticket is already closed."
@@ -160,10 +207,14 @@ function SupportTickets() {
 
         } catch (err) {
 
-            console.error(err);
+            console.error(
+                "Failed to send admin reply:",
+                err
+            );
 
             setError(
                 err.response?.data?.message ||
+                err.response?.data ||
                 "Unable to send reply."
             );
 
@@ -192,10 +243,8 @@ function SupportTickets() {
             await supportApi.updateTicket(
                 selectedTicket.id,
                 {
-                    status:
-                        updateData.status,
-                    priority:
-                        updateData.priority,
+                    status: updateData.status,
+                    priority: updateData.priority,
                     resolution:
                         updateData.resolution
                 }
@@ -213,10 +262,14 @@ function SupportTickets() {
 
         } catch (err) {
 
-            console.error(err);
+            console.error(
+                "Failed to update ticket:",
+                err
+            );
 
             setError(
                 err.response?.data?.message ||
+                err.response?.data ||
                 "Unable to update ticket."
             );
 
@@ -227,7 +280,169 @@ function SupportTickets() {
     };
 
     // =========================================================
-    // HELPERS
+    // CLOSE TICKET
+    // =========================================================
+
+    const handleClose = async () => {
+
+        if (!selectedTicket) {
+            return;
+        }
+
+        try {
+
+            setUpdating(true);
+            setError("");
+            setSuccess("");
+
+            await supportApi.closeTicket(
+                selectedTicket.id
+            );
+
+            setSuccess(
+                "Ticket closed successfully."
+            );
+
+            await openTicket(
+                selectedTicket.id
+            );
+
+            await loadTickets();
+
+        } catch (err) {
+
+            console.error(
+                "Failed to close ticket:",
+                err
+            );
+
+            setError(
+                err.response?.data?.message ||
+                err.response?.data ||
+                "Unable to close ticket."
+            );
+
+        } finally {
+
+            setUpdating(false);
+        }
+    };
+
+    // =========================================================
+    // REOPEN TICKET
+    // =========================================================
+
+    const handleReopen = async () => {
+
+        if (!selectedTicket) {
+            return;
+        }
+
+        try {
+
+            setUpdating(true);
+            setError("");
+            setSuccess("");
+
+            await supportApi.reopenTicket(
+                selectedTicket.id
+            );
+
+            setSuccess(
+                "Ticket reopened successfully."
+            );
+
+            await openTicket(
+                selectedTicket.id
+            );
+
+            await loadTickets();
+
+        } catch (err) {
+
+            console.error(
+                "Failed to reopen ticket:",
+                err
+            );
+
+            setError(
+                err.response?.data?.message ||
+                err.response?.data ||
+                "Unable to reopen ticket."
+            );
+
+        } finally {
+
+            setUpdating(false);
+        }
+    };
+
+    // =========================================================
+    // DELETE TICKET
+    // =========================================================
+
+    const handleDelete = async () => {
+
+        if (!selectedTicket) {
+            return;
+        }
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to delete ticket #${selectedTicket.id}?`
+            );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            setDeleting(true);
+            setError("");
+            setSuccess("");
+
+            await supportApi.deleteTicket(
+                selectedTicket.id
+            );
+
+            setSelectedTicket(null);
+
+            setUpdateData({
+                status: "",
+                priority: "",
+                resolution: ""
+            });
+
+            setReply("");
+
+            setSuccess(
+                "Support ticket deleted successfully."
+            );
+
+            await loadTickets();
+
+        } catch (err) {
+
+            console.error(
+                "Failed to delete ticket:",
+                err
+            );
+
+            setError(
+                err.response?.data?.message ||
+                err.response?.data ||
+                "Unable to delete ticket."
+            );
+
+        } finally {
+
+            setDeleting(false);
+        }
+    };
+
+    // =========================================================
+    // STATUS CLASS
     // =========================================================
 
     const getStatusClass = (status) => {
@@ -253,6 +468,10 @@ function SupportTickets() {
         }
     };
 
+    // =========================================================
+    // PRIORITY CLASS
+    // =========================================================
+
     const getPriorityClass = (priority) => {
 
         switch (
@@ -276,20 +495,49 @@ function SupportTickets() {
         }
     };
 
+    // =========================================================
+    // FORMAT DATE
+    // =========================================================
+
     const formatDate = (value) => {
 
         if (!value) {
             return "";
         }
 
-        return new Date(value)
-            .toLocaleString(
-                "en-IN",
-                {
-                    dateStyle: "medium",
-                    timeStyle: "short"
-                }
-            );
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return value;
+        }
+
+        return date.toLocaleString(
+            "en-IN",
+            {
+                dateStyle: "medium",
+                timeStyle: "short"
+            }
+        );
+    };
+
+    // =========================================================
+    // CLEAR SELECTED TICKET
+    // =========================================================
+
+    const clearSelectedTicket = () => {
+
+        setSelectedTicket(null);
+
+        setReply("");
+
+        setUpdateData({
+            status: "",
+            priority: "",
+            resolution: ""
+        });
+
+        setError("");
+        setSuccess("");
     };
 
     // =========================================================
@@ -297,7 +545,12 @@ function SupportTickets() {
     // =========================================================
 
     return (
+
         <div className="admin-support-page">
+
+            {/* =====================================================
+                HEADER
+            ===================================================== */}
 
             <div className="admin-support-header">
 
@@ -324,21 +577,45 @@ function SupportTickets() {
 
             </div>
 
-            {/* ALERTS */}
+            {/* =====================================================
+                ALERTS
+            ===================================================== */}
 
             {error && (
+
                 <div className="admin-support-alert error">
-                    {error}
+
+                    <span>
+                        ⚠️
+                    </span>
+
+                    <span>
+                        {error}
+                    </span>
+
                 </div>
+
             )}
 
             {success && (
+
                 <div className="admin-support-alert success">
-                    {success}
+
+                    <span>
+                        ✅
+                    </span>
+
+                    <span>
+                        {success}
+                    </span>
+
                 </div>
+
             )}
 
-            {/* STATUS FILTER */}
+            {/* =====================================================
+                FILTERS
+            ===================================================== */}
 
             <div className="admin-support-filters">
 
@@ -348,25 +625,39 @@ function SupportTickets() {
                     ["IN_PROGRESS", "In Progress"],
                     ["RESOLVED", "Resolved"],
                     ["CLOSED", "Closed"]
-                ].map(([value, label]) => (
+                ].map(
+                    ([value, label]) => (
 
-                    <button
-                        key={value}
-                        className={
-                            statusFilter === value
-                                ? "active"
-                                : ""
-                        }
-                        onClick={() =>
-                            setStatusFilter(value)
-                        }
-                    >
-                        {label}
-                    </button>
+                        <button
+                            key={value}
+                            type="button"
+                            className={
+                                statusFilter === value
+                                    ? "active"
+                                    : ""
+                            }
+                            onClick={() => {
 
-                ))}
+                                setStatusFilter(value);
+
+                                setSelectedTicket(null);
+
+                                setError("");
+                                setSuccess("");
+
+                            }}
+                        >
+                            {label}
+                        </button>
+
+                    )
+                )}
 
             </div>
+
+            {/* =====================================================
+                MAIN LAYOUT
+            ===================================================== */}
 
             <div className="admin-support-layout">
 
@@ -379,12 +670,15 @@ function SupportTickets() {
                     <div className="admin-support-panel-header">
 
                         <div>
+
                             <span>
                                 SUPPORT REQUESTS
                             </span>
+
                             <h2>
                                 Tickets
                             </h2>
+
                         </div>
 
                         <strong>
@@ -396,100 +690,137 @@ function SupportTickets() {
                     {loading ? (
 
                         <div className="admin-support-empty">
-                            Loading tickets...
+
+                            <div>
+                                ⏳
+                            </div>
+
+                            <p>
+                                Loading tickets...
+                            </p>
+
                         </div>
 
                     ) : tickets.length === 0 ? (
 
                         <div className="admin-support-empty">
-                            No tickets found.
+
+                            <div>
+                                🎫
+                            </div>
+
+                            <h3>
+                                No tickets found
+                            </h3>
+
+                            <p>
+                                There are no support tickets
+                                for this filter.
+                            </p>
+
                         </div>
 
                     ) : (
 
                         <div className="admin-support-list">
 
-                            {tickets.map((ticket) => (
+                            {tickets.map(
+                                (ticket) => (
 
-                                <button
-                                    key={ticket.id}
-                                    className={`admin-support-ticket ${
-                                        selectedTicket?.id ===
-                                        ticket.id
-                                            ? "active"
-                                            : ""
-                                    }`}
-                                    onClick={() =>
-                                        openTicket(
+                                    <button
+                                        key={ticket.id}
+                                        type="button"
+                                        className={`admin-support-ticket ${
+                                            selectedTicket?.id ===
                                             ticket.id
-                                        )
-                                    }
-                                >
-
-                                    <div className="admin-ticket-top">
-
-                                        <strong>
-                                            #{ticket.id}
-                                        </strong>
-
-                                        <span
-                                            className={`admin-support-badge ${getStatusClass(
-                                                ticket.status
-                                            )}`}
-                                        >
-                                            {ticket.status?.replace(
-                                                "_",
-                                                " "
-                                            )}
-                                        </span>
-
-                                    </div>
-
-                                    <h3>
-                                        {ticket.subject}
-                                    </h3>
-
-                                    <p>
-                                        {
-                                            ticket.userName
+                                                ? "active"
+                                                : ""
+                                        }`}
+                                        onClick={() =>
+                                            openTicket(
+                                                ticket.id
+                                            )
                                         }
-                                        {" · "}
-                                        {
-                                            ticket.userRole
-                                        }
-                                    </p>
+                                    >
 
-                                    <div className="admin-ticket-bottom">
+                                        <div className="admin-ticket-top">
 
-                                        <span>
+                                            <strong>
+                                                #{ticket.id}
+                                            </strong>
+
+                                            <span
+                                                className={`admin-support-badge ${getStatusClass(
+                                                    ticket.status
+                                                )}`}
+                                            >
+                                                {ticket.status
+                                                    ?.replace(
+                                                        /_/g,
+                                                        " "
+                                                    )}
+                                            </span>
+
+                                        </div>
+
+                                        <h3>
                                             {
-                                                ticket.category
+                                                ticket.subject ||
+                                                "No subject"
                                             }
-                                        </span>
+                                        </h3>
 
-                                        <span
-                                            className={getPriorityClass(
-                                                ticket.priority
-                                            )}
-                                        >
+                                        <p>
+
                                             {
-                                                ticket.priority
+                                                ticket.userName ||
+                                                "Unknown user"
                                             }
-                                        </span>
 
-                                    </div>
+                                            {" · "}
 
-                                </button>
+                                            {
+                                                ticket.userRole ||
+                                                "USER"
+                                            }
 
-                            ))}
+                                        </p>
+
+                                        <div className="admin-ticket-bottom">
+
+                                            <span>
+                                                {
+                                                    ticket.category ||
+                                                    "GENERAL"
+                                                }
+                                            </span>
+
+                                            <span
+                                                className={getPriorityClass(
+                                                    ticket.priority
+                                                )}
+                                            >
+                                                {
+                                                    ticket.priority ||
+                                                    "MEDIUM"
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                    </button>
+
+                                )
+                            )}
 
                         </div>
+
                     )}
 
                 </section>
 
                 {/* =================================================
-                    DETAIL
+                    TICKET DETAIL
                 ================================================= */}
 
                 <section className="admin-support-panel admin-support-detail">
@@ -497,7 +828,15 @@ function SupportTickets() {
                     {ticketLoading ? (
 
                         <div className="admin-support-empty">
-                            Loading ticket...
+
+                            <div>
+                                ⏳
+                            </div>
+
+                            <p>
+                                Loading ticket...
+                            </p>
+
                         </div>
 
                     ) : !selectedTicket ? (
@@ -523,151 +862,236 @@ function SupportTickets() {
 
                         <>
 
+                            {/* =================================================
+                                DETAIL HEADER
+                            ================================================= */}
+
                             <div className="admin-detail-header">
 
                                 <div>
 
                                     <span>
                                         TICKET #
-                                        {
-                                            selectedTicket.id
-                                        }
+                                        {selectedTicket.id}
                                     </span>
 
                                     <h2>
                                         {
-                                            selectedTicket.subject
+                                            selectedTicket.subject ||
+                                            "Support Ticket"
                                         }
                                     </h2>
 
                                 </div>
 
-                                <span
-                                    className={`admin-support-badge ${getStatusClass(
-                                        selectedTicket.status
-                                    )}`}
-                                >
-                                    {selectedTicket.status?.replace(
-                                        "_",
-                                        " "
-                                    )}
-                                </span>
+                                <div className="admin-detail-header-actions">
+
+                                    <span
+                                        className={`admin-support-badge ${getStatusClass(
+                                            selectedTicket.status
+                                        )}`}
+                                    >
+                                        {
+                                            selectedTicket.status
+                                                ?.replace(
+                                                    /_/g,
+                                                    " "
+                                                )
+                                        }
+                                    </span>
+
+                                    <button
+                                        type="button"
+                                        onClick={
+                                            clearSelectedTicket
+                                        }
+                                    >
+                                        ✕
+                                    </button>
+
+                                </div>
 
                             </div>
+
+                            {/* =================================================
+                                CUSTOMER INFO
+                            ================================================= */}
 
                             <div className="admin-customer-info">
 
                                 <div>
+
                                     <span>
                                         USER
                                     </span>
 
                                     <strong>
                                         {
-                                            selectedTicket.userName
+                                            selectedTicket.userName ||
+                                            "Unknown"
                                         }
                                     </strong>
 
                                     <small>
                                         {
-                                            selectedTicket.userRole
+                                            selectedTicket.userRole ||
+                                            "USER"
                                         }
                                     </small>
 
                                 </div>
 
                                 <div>
+
                                     <span>
                                         EMAIL
                                     </span>
 
                                     <strong>
                                         {
-                                            selectedTicket.userEmail
+                                            selectedTicket.userEmail ||
+                                            "Not provided"
                                         }
                                     </strong>
+
                                 </div>
 
                                 <div>
+
                                     <span>
                                         CATEGORY
                                     </span>
 
                                     <strong>
                                         {
-                                            selectedTicket.category
+                                            selectedTicket.category ||
+                                            "GENERAL"
                                         }
                                     </strong>
+
                                 </div>
 
                             </div>
 
+                            {/* =================================================
+                                TICKET DESCRIPTION
+                            ================================================= */}
+
+                            <div className="admin-ticket-description">
+
+                                <span>
+                                    ORIGINAL REQUEST
+                                </span>
+
+                                <p>
+                                    {
+                                        selectedTicket.description ||
+                                        "No description provided."
+                                    }
+                                </p>
+
+                            </div>
+
+                            {/* =================================================
+                                CONVERSATION
+                            ================================================= */}
+
                             <div className="admin-conversation">
 
-                                {selectedTicket.messages?.map(
-                                    (message) => {
+                                {selectedTicket.messages &&
+                                selectedTicket.messages.length > 0 ? (
 
-                                        const isAdmin =
-                                            message.senderRole ===
-                                            "ADMIN";
+                                    selectedTicket.messages.map(
+                                        (message) => {
 
-                                        return (
-                                            <div
-                                                key={
-                                                    message.id
-                                                }
-                                                className={`admin-message ${
-                                                    isAdmin
-                                                        ? "admin"
-                                                        : "user"
-                                                }`}
-                                            >
+                                            const isAdmin =
+                                                message.senderRole
+                                                    ?.toUpperCase() ===
+                                                "ADMIN";
 
-                                                <div className="admin-message-box">
+                                            return (
 
-                                                    <div className="admin-message-name">
+                                                <div
+                                                    key={
+                                                        message.id
+                                                    }
+                                                    className={`admin-message ${
+                                                        isAdmin
+                                                            ? "admin"
+                                                            : "user"
+                                                    }`}
+                                                >
 
-                                                        <strong>
+                                                    <div className="admin-message-box">
+
+                                                        <div className="admin-message-name">
+
+                                                            <strong>
+                                                                {
+                                                                    message.senderName ||
+                                                                    "User"
+                                                                }
+                                                            </strong>
+
+                                                            <span>
+                                                                {
+                                                                    message.senderRole ||
+                                                                    "USER"
+                                                                }
+                                                            </span>
+
+                                                        </div>
+
+                                                        <p>
                                                             {
-                                                                message.senderName
+                                                                message.message
                                                             }
-                                                        </strong>
+                                                        </p>
 
-                                                        <span>
-                                                            {
-                                                                message.senderRole
-                                                            }
-                                                        </span>
+                                                        <small>
+                                                            {formatDate(
+                                                                message.createdAt
+                                                            )}
+                                                        </small>
 
                                                     </div>
 
-                                                    <p>
-                                                        {
-                                                            message.message
-                                                        }
-                                                    </p>
-
-                                                    <small>
-                                                        {formatDate(
-                                                            message.createdAt
-                                                        )}
-                                                    </small>
-
                                                 </div>
 
-                                            </div>
-                                        );
-                                    }
+                                            );
+                                        }
+                                    )
+
+                                ) : (
+
+                                    <div className="admin-support-empty">
+
+                                        <div>
+                                            💬
+                                        </div>
+
+                                        <p>
+                                            No messages yet.
+                                        </p>
+
+                                    </div>
+
                                 )}
 
                             </div>
 
-                            {selectedTicket.status !==
+                            {/* =================================================
+                                ADMIN REPLY
+                            ================================================= */}
+
+                            {selectedTicket.status?.toUpperCase() !==
                                 "CLOSED" && (
 
                                 <form
                                     className="admin-reply-form"
-                                    onSubmit={handleReply}
+                                    onSubmit={
+                                        handleReply
+                                    }
                                 >
 
                                     <textarea
@@ -676,9 +1100,11 @@ function SupportTickets() {
                                         value={reply}
                                         onChange={(event) =>
                                             setReply(
-                                                event.target
-                                                    .value
+                                                event.target.value
                                             )
+                                        }
+                                        disabled={
+                                            sending
                                         }
                                     />
 
@@ -689,13 +1115,16 @@ function SupportTickets() {
                                             !reply.trim()
                                         }
                                     >
+
                                         {sending
                                             ? "Sending..."
                                             : "Send Reply"
                                         }
+
                                     </button>
 
                                 </form>
+
                             )}
 
                             {/* =================================================
@@ -705,6 +1134,7 @@ function SupportTickets() {
                             <div className="admin-ticket-actions">
 
                                 <div>
+
                                     <label>
                                         Status
                                     </label>
@@ -717,8 +1147,7 @@ function SupportTickets() {
                                             setUpdateData({
                                                 ...updateData,
                                                 status:
-                                                    event.target
-                                                        .value
+                                                    event.target.value
                                             })
                                         }
                                     >
@@ -744,6 +1173,7 @@ function SupportTickets() {
                                 </div>
 
                                 <div>
+
                                     <label>
                                         Priority
                                     </label>
@@ -756,8 +1186,7 @@ function SupportTickets() {
                                             setUpdateData({
                                                 ...updateData,
                                                 priority:
-                                                    event.target
-                                                        .value
+                                                    event.target.value
                                             })
                                         }
                                     >
@@ -798,26 +1227,85 @@ function SupportTickets() {
                                             setUpdateData({
                                                 ...updateData,
                                                 resolution:
-                                                    event.target
-                                                        .value
+                                                    event.target.value
                                             })
                                         }
                                     />
 
                                 </div>
 
-                                <button
-                                    className="admin-update-btn"
-                                    onClick={
-                                        handleUpdate
-                                    }
-                                    disabled={updating}
-                                >
-                                    {updating
-                                        ? "Saving..."
-                                        : "Save Ticket Update"
-                                    }
-                                </button>
+                                <div className="admin-ticket-action-buttons">
+
+                                    <button
+                                        type="button"
+                                        className="admin-update-btn"
+                                        onClick={
+                                            handleUpdate
+                                        }
+                                        disabled={
+                                            updating
+                                        }
+                                    >
+
+                                        {updating
+                                            ? "Saving..."
+                                            : "Save Ticket Update"
+                                        }
+
+                                    </button>
+
+                                    {selectedTicket.status?.toUpperCase() !==
+                                        "CLOSED" ? (
+
+                                        <button
+                                            type="button"
+                                            className="admin-close-btn"
+                                            onClick={
+                                                handleClose
+                                            }
+                                            disabled={
+                                                updating
+                                            }
+                                        >
+                                            Close Ticket
+                                        </button>
+
+                                    ) : (
+
+                                        <button
+                                            type="button"
+                                            className="admin-reopen-btn"
+                                            onClick={
+                                                handleReopen
+                                            }
+                                            disabled={
+                                                updating
+                                            }
+                                        >
+                                            Reopen Ticket
+                                        </button>
+
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        className="admin-delete-btn"
+                                        onClick={
+                                            handleDelete
+                                        }
+                                        disabled={
+                                            deleting
+                                        }
+                                    >
+
+                                        {deleting
+                                            ? "Deleting..."
+                                            : "Delete Ticket"
+                                        }
+
+                                    </button>
+
+                                </div>
 
                             </div>
 
