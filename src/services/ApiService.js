@@ -15,8 +15,9 @@ const API_BASE_URL =
 const API = axios.create({
     baseURL: API_BASE_URL.replace(/\/+$/, ""),
     headers: {
-        "Content-Type": "application/json"
-    }
+        "Content-Type": "application/json",
+    },
+    timeout: 30000,
 });
 
 // =========================================================
@@ -25,7 +26,6 @@ const API = axios.create({
 
 API.interceptors.request.use(
     (config) => {
-
         const token = localStorage.getItem("token");
 
         if (token) {
@@ -34,14 +34,24 @@ API.interceptors.request.use(
         }
 
         console.log(
+            "================================================="
+        );
+        console.log(
             "API REQUEST:",
             config.method?.toUpperCase(),
             `${config.baseURL}${config.url}`
         );
 
+        if (config.data) {
+            console.log("REQUEST DATA:", config.data);
+        }
+
+        console.log(
+            "================================================="
+        );
+
         return config;
     },
-
     (error) => {
         return Promise.reject(error);
     }
@@ -52,9 +62,7 @@ API.interceptors.request.use(
 // =========================================================
 
 API.interceptors.response.use(
-
     (response) => {
-
         console.log(
             "API RESPONSE:",
             response.status,
@@ -65,14 +73,23 @@ API.interceptors.response.use(
     },
 
     (error) => {
+        const status = error.response?.status;
+        const data = error.response?.data;
 
         console.error(
-            "API ERROR:",
-            error.response?.status,
-            error.response?.data || error.message
+            "================================================="
+        );
+        console.error("API ERROR STATUS:", status);
+        console.error("API ERROR DATA:", data);
+        console.error(
+            "API ERROR URL:",
+            error.config?.baseURL + error.config?.url
+        );
+        console.error(
+            "================================================="
         );
 
-        if (error.response?.status === 401) {
+        if (status === 401) {
             console.warn(
                 "Authentication expired or invalid."
             );
@@ -89,21 +106,26 @@ API.interceptors.response.use(
 export const authApi = {
 
     login: (data) =>
-        API.post(
-            "/auth/login",
-            data
-        ),
+        API.post("/auth/login", data),
 
     register: (data) =>
-        API.post(
-            "/auth/register",
-            data
-        ),
+        API.post("/auth/register", data),
 
     getProfile: () =>
-        API.get(
-            "/users/profile"
-        )
+        API.get("/users/profile"),
+};
+
+// =========================================================
+// USER API
+// =========================================================
+
+export const userApi = {
+
+    getProfile: () =>
+        API.get("/users/profile"),
+
+    updateProfile: (data) =>
+        API.put("/users/profile", data),
 };
 
 // =========================================================
@@ -113,31 +135,19 @@ export const authApi = {
 export const restaurantApi = {
 
     getAll: () =>
-        API.get(
-            "/restaurants"
-        ),
+        API.get("/restaurants"),
 
     getById: (id) =>
-        API.get(
-            `/restaurants/${id}`
-        ),
+        API.get(`/restaurants/${id}`),
 
     create: (data) =>
-        API.post(
-            "/restaurants",
-            data
-        ),
+        API.post("/restaurants", data),
 
     update: (id, data) =>
-        API.put(
-            `/restaurants/${id}`,
-            data
-        ),
+        API.put(`/restaurants/${id}`, data),
 
     delete: (id) =>
-        API.delete(
-            `/restaurants/${id}`
-        )
+        API.delete(`/restaurants/${id}`),
 };
 
 // =========================================================
@@ -147,36 +157,22 @@ export const restaurantApi = {
 export const foodApi = {
 
     getAll: () =>
-        API.get(
-            "/foods"
-        ),
+        API.get("/foods"),
 
     getById: (id) =>
-        API.get(
-            `/foods/${id}`
-        ),
+        API.get(`/foods/${id}`),
 
     getByRestaurant: (restaurantId) =>
-        API.get(
-            `/foods/restaurant/${restaurantId}`
-        ),
+        API.get(`/foods/restaurant/${restaurantId}`),
 
     create: (data) =>
-        API.post(
-            "/foods",
-            data
-        ),
+        API.post("/foods", data),
 
     update: (id, data) =>
-        API.put(
-            `/foods/${id}`,
-            data
-        ),
+        API.put(`/foods/${id}`, data),
 
     delete: (id) =>
-        API.delete(
-            `/foods/${id}`
-        )
+        API.delete(`/foods/${id}`),
 };
 
 // =========================================================
@@ -186,33 +182,21 @@ export const foodApi = {
 export const cartApi = {
 
     getCart: () =>
-        API.get(
-            "/cart"
-        ),
+        API.get("/cart"),
 
     addToCart: (data) =>
-        API.post(
-            "/cart",
-            data
-        ),
+        API.post("/cart", data),
 
     updateQuantity: (id, quantity) =>
-        API.put(
-            `/cart/${id}`,
-            {
-                quantity
-            }
-        ),
+        API.put(`/cart/${id}`, {
+            quantity,
+        }),
 
     removeItem: (id) =>
-        API.delete(
-            `/cart/${id}`
-        ),
+        API.delete(`/cart/${id}`),
 
     clearCart: () =>
-        API.delete(
-            "/cart/clear"
-        )
+        API.delete("/cart/clear"),
 };
 
 // =========================================================
@@ -222,25 +206,16 @@ export const cartApi = {
 export const orderApi = {
 
     create: (data) =>
-        API.post(
-            "/orders",
-            data
-        ),
+        API.post("/orders", data),
 
     getMyOrders: () =>
-        API.get(
-            "/orders/my"
-        ),
+        API.get("/orders/my"),
 
     getById: (id) =>
-        API.get(
-            `/orders/${id}`
-        ),
+        API.get(`/orders/${id}`),
 
     cancel: (id) =>
-        API.put(
-            `/orders/${id}/cancel`
-        )
+        API.put(`/orders/${id}/cancel`),
 };
 
 // =========================================================
@@ -255,37 +230,31 @@ export const reviewApi = {
         ),
 
     create: (data) =>
-        API.post(
-            "/reviews",
-            data
-        ),
+        API.post("/reviews", data),
 
     update: (id, data) =>
-        API.put(
-            `/reviews/${id}`,
-            data
-        ),
+        API.put(`/reviews/${id}`, data),
 
     delete: (id) =>
-        API.delete(
-            `/reviews/${id}`
-        )
+        API.delete(`/reviews/${id}`),
 };
 
 // =========================================================
 // SUPPORT API
 // =========================================================
-//
-// BACKEND ENDPOINTS:
-//
-// POST /api/support/tickets
-// GET  /api/support/tickets
-// GET  /api/support/tickets/{ticketId}
-// POST /api/support/tickets/{ticketId}/messages
-//
 // IMPORTANT:
-// Do NOT use /support directly.
-// The correct endpoint is /support/tickets.
+//
+// Frontend base URL:
+// https://bpr-backend-production-3381.up.railway.app/api
+//
+// Therefore:
+//
+// "/support/tickets"
+// becomes:
+//
+// https://bpr-backend-production-3381.up.railway.app/api/support/tickets
+//
+// DO NOT use "/support" for ticket creation.
 // =========================================================
 
 export const supportApi = {
@@ -295,10 +264,9 @@ export const supportApi = {
     // =====================================================
 
     createTicket: (data) => {
-
         console.log(
-            "CREATE SUPPORT TICKET:",
-            "POST /support/tickets",
+            "CREATE TICKET:",
+            `${API_BASE_URL}/support/tickets`,
             data
         );
 
@@ -309,10 +277,9 @@ export const supportApi = {
     },
 
     getMyTickets: () => {
-
         console.log(
-            "GET MY SUPPORT TICKETS:",
-            "GET /support/tickets"
+            "GET MY TICKETS:",
+            `${API_BASE_URL}/support/tickets`
         );
 
         return API.get(
@@ -321,10 +288,9 @@ export const supportApi = {
     },
 
     getMyTicket: (ticketId) => {
-
         console.log(
-            "GET SUPPORT TICKET:",
-            `GET /support/tickets/${ticketId}`
+            "GET MY TICKET:",
+            `${API_BASE_URL}/support/tickets/${ticketId}`
         );
 
         return API.get(
@@ -332,11 +298,13 @@ export const supportApi = {
         );
     },
 
-    addUserMessage: (ticketId, data) => {
-
+    addUserMessage: (
+        ticketId,
+        data
+    ) => {
         console.log(
-            "ADD USER SUPPORT MESSAGE:",
-            `POST /support/tickets/${ticketId}/messages`,
+            "ADD USER MESSAGE:",
+            `${API_BASE_URL}/support/tickets/${ticketId}/messages`,
             data
         );
 
@@ -357,13 +325,12 @@ export const supportApi = {
         );
 
         if (status) {
-
             return API.get(
                 "/admin/support",
                 {
                     params: {
-                        status
-                    }
+                        status,
+                    },
                 }
             );
         }
@@ -373,67 +340,43 @@ export const supportApi = {
         );
     },
 
-    getAdminTicket: (ticketId) => {
-
-        return API.get(
-            `/admin/support/${ticketId}`
-        );
-    },
-
-    addAdminMessage: (ticketId, data) => {
-
-        return API.post(
-            `/admin/support/${ticketId}/messages`,
-            data
-        );
-    },
-
-    updateTicket: (ticketId, data) => {
-
-        return API.put(
-            `/admin/support/${ticketId}`,
-            data
-        );
-    },
-
-    closeTicket: (ticketId) => {
-
-        return API.put(
-            `/admin/support/${ticketId}/close`
-        );
-    },
-
-    reopenTicket: (ticketId) => {
-
-        return API.put(
-            `/admin/support/${ticketId}/reopen`
-        );
-    },
-
-    deleteTicket: (ticketId) => {
-
-        return API.delete(
-            `/admin/support/${ticketId}`
-        );
-    }
-};
-
-// =========================================================
-// USER API
-// =========================================================
-
-export const userApi = {
-
-    getProfile: () =>
+    getAdminTicket: (ticketId) =>
         API.get(
-            "/users/profile"
+            `/admin/support/${ticketId}`
         ),
 
-    updateProfile: (data) =>
-        API.put(
-            "/users/profile",
+    addAdminMessage: (
+        ticketId,
+        data
+    ) =>
+        API.post(
+            `/admin/support/${ticketId}/messages`,
             data
-        )
+        ),
+
+    updateTicket: (
+        ticketId,
+        data
+    ) =>
+        API.put(
+            `/admin/support/${ticketId}`,
+            data
+        ),
+
+    closeTicket: (ticketId) =>
+        API.put(
+            `/admin/support/${ticketId}/close`
+        ),
+
+    reopenTicket: (ticketId) =>
+        API.put(
+            `/admin/support/${ticketId}/reopen`
+        ),
+
+    deleteTicket: (ticketId) =>
+        API.delete(
+            `/admin/support/${ticketId}`
+        ),
 };
 
 // =========================================================
@@ -443,29 +386,19 @@ export const userApi = {
 export const adminApi = {
 
     getDashboard: () =>
-        API.get(
-            "/admin/dashboard"
-        ),
+        API.get("/admin/dashboard"),
 
     getUsers: () =>
-        API.get(
-            "/admin/users"
-        ),
+        API.get("/admin/users"),
 
     getRestaurants: () =>
-        API.get(
-            "/admin/restaurants"
-        ),
+        API.get("/admin/restaurants"),
 
     getFoods: () =>
-        API.get(
-            "/admin/foods"
-        ),
+        API.get("/admin/foods"),
 
     getOrders: () =>
-        API.get(
-            "/admin/orders"
-        )
+        API.get("/admin/orders"),
 };
 
 // =========================================================
@@ -475,14 +408,10 @@ export const adminApi = {
 export const ownerApi = {
 
     getDashboard: () =>
-        API.get(
-            "/owner/dashboard"
-        ),
+        API.get("/owner/dashboard"),
 
     getRestaurant: () =>
-        API.get(
-            "/owner/restaurant"
-        ),
+        API.get("/owner/restaurant"),
 
     updateRestaurant: (data) =>
         API.put(
@@ -491,14 +420,10 @@ export const ownerApi = {
         ),
 
     getFoods: () =>
-        API.get(
-            "/owner/foods"
-        ),
+        API.get("/owner/foods"),
 
     getOrders: () =>
-        API.get(
-            "/owner/orders"
-        )
+        API.get("/owner/orders"),
 };
 
 // =========================================================
