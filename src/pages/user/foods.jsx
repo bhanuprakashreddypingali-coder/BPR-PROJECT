@@ -1,350 +1,1019 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+
+import CustomerService from "../../services/CustomerService";
 import API from "../../services/ApiService";
 
+import "./Foods.css";
+
 function Foods() {
+    const { id } = useParams();
+    const navigate = useNavigate();
+
     const [foods, setFoods] = useState([]);
+    const [search, setSearch] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("ALL");
+
     const [loading, setLoading] = useState(true);
 
-    // ============================================================
-    // BACKEND BASE URL
-    // ============================================================
+    const [favoriteIds, setFavoriteIds] = useState([]);
+    const [wishlistIds, setWishlistIds] = useState([]);
 
-    const BACKEND_URL = API.defaults.baseURL.replace(/\/api\/?$/, "");
+    const [favoriteLoading, setFavoriteLoading] = useState({});
+    const [wishlistLoading, setWishlistLoading] = useState({});
+    const [cartLoading, setCartLoading] = useState({});
 
-    // ============================================================
+    // =========================================================
+    // CATEGORY CONFIG
+    // =========================================================
+
+    const categoryInfo = {
+        BIRYANIS: {
+            name: "Biryanis",
+            icon: "🍗"
+        },
+        ROTIS: {
+            name: "Rotis & Breads",
+            icon: "🫓"
+        },
+        VEG_CURRIES: {
+            name: "Veg Curries",
+            icon: "🥦"
+        },
+        NON_VEG_CURRIES: {
+            name: "Non-Veg Curries",
+            icon: "🍗"
+        },
+        RICE: {
+            name: "Rice & Meals",
+            icon: "🍚"
+        },
+        STARTERS: {
+            name: "Starters",
+            icon: "🍟"
+        },
+        FAMILY_PACK: {
+            name: "Family Packs",
+            icon: "👨‍👩‍👧‍👦"
+        },
+        COMBOS: {
+            name: "Combos",
+            icon: "🎁"
+        },
+        DRINKS: {
+            name: "Drinks",
+            icon: "🥤"
+        },
+        WATER: {
+            name: "Water",
+            icon: "💧"
+        },
+        DESSERTS: {
+            name: "Desserts",
+            icon: "🍨"
+        },
+        SALADS: {
+            name: "Salads & Sides",
+            icon: "🥗"
+        }
+    };
+
+    // =========================================================
+    // NORMALIZE CATEGORY
+    // =========================================================
+
+    const normalizeCategory = (category) => {
+        if (!category) {
+            return "OTHER";
+        }
+
+        return String(category)
+            .trim()
+            .toUpperCase()
+            .replace(/[\s-]+/g, "_");
+    };
+
+    // =========================================================
     // LOAD FOODS
-    // ============================================================
+    // =========================================================
 
     useEffect(() => {
-        loadFoods();
-    }, []);
+        if (id) {
+            loadFoods();
+        }
+    }, [id]);
 
     const loadFoods = async () => {
         try {
             setLoading(true);
 
-            const response = await API.get("/foods");
+            console.log("Loading foods for restaurant:", id);
 
-            setFoods(
-                Array.isArray(response.data)
-                    ? response.data
-                    : []
-            );
+            const response =
+                await CustomerService.getFoodsByRestaurant(id);
 
+            console.log("Foods response:", response);
+
+            const data = response?.data;
+
+            if (Array.isArray(data)) {
+                setFoods(data);
+            } else if (Array.isArray(data?.content)) {
+                setFoods(data.content);
+            } else {
+                setFoods([]);
+            }
         } catch (error) {
-            console.error("Failed to load foods:", error);
+            console.error("Error loading foods:", error);
 
             if (error.response?.status === 401) {
-                alert("Your session has expired. Please login again.");
-            } else if (error.response?.status === 403) {
-                alert("You do not have permission to view foods.");
-            } else {
-                alert(
-                    error.response?.data?.message ||
-                    error.response?.data ||
-                    "Failed to load foods."
+                console.error("Unauthorized request.");
+            }
+
+            if (error.response?.status === 403) {
+                console.error(
+                    "403 Forbidden while loading restaurant foods."
                 );
             }
 
+            setFoods([]);
         } finally {
             setLoading(false);
         }
     };
 
-    // ============================================================
-    // FOOD IMAGE URL
-    // ============================================================
+    // =========================================================
+    // CURRENT USER
+    // =========================================================
 
-    const getImageUrl = (image) => {
-        if (!image) {
+    const getCurrentUser = () => {
+        try {
+            return JSON.parse(
+                localStorage.getItem("user") || "null"
+            );
+        } catch (error) {
+            console.error("Unable to read user:", error);
             return null;
         }
-
-        // Already a complete URL
-        if (
-            image.startsWith("http://") ||
-            image.startsWith("https://")
-        ) {
-            return image;
-        }
-
-        // Backend relative path
-        if (image.startsWith("/")) {
-            return `${BACKEND_URL}${image}`;
-        }
-
-        return `${BACKEND_URL}/${image}`;
     };
 
-    // ============================================================
-    // DELETE FOOD
-    // ============================================================
+    // =========================================================
+    // LOGIN CHECK
+    // =========================================================
 
-    const deleteFood = async (id) => {
-        const confirmDelete = window.confirm(
-            "Are you sure you want to delete this food?"
-        );
+    const requireLogin = () => {
+        const token = localStorage.getItem("token");
 
-        if (!confirmDelete) {
+        if (!token) {
+            alert("Please login to use this feature.");
+
+            navigate("/login", {
+                state: {
+                    from: `/restaurants/${id}`
+                }
+            });
+
+            return false;
+        }
+
+        return true;
+    };
+
+    // =========================================================
+    // LOAD FAVORITES
+    // =========================================================
+
+    useEffect(() => {
+        loadFavorites();
+        loadWishlist();
+    }, []);
+
+    const loadFavorites = async () => {
+        /*
+         * Do not call the old favorites/user endpoint here.
+         *
+         * The current backend security configuration can return
+         * 403 for that request.
+         *
+         * Favorite state is updated when the customer adds an item.
+         */
+        setFavoriteIds([]);
+    };
+
+    // =========================================================
+    // LOAD WISHLIST
+    // =========================================================
+
+    const loadWishlist = async () => {
+        /*
+         * Wishlist state is updated when an item is added.
+         *
+         * We intentionally do not make an extra request here.
+         */
+    };
+
+    // =========================================================
+    // ADD TO CART
+    // =========================================================
+
+    const addToCart = async (food) => {
+        if (!requireLogin()) {
+            return;
+        }
+
+        if (!food?.available) {
+            alert("This food is currently unavailable.");
             return;
         }
 
         try {
-            await API.delete(`/foods/${id}`);
+            setCartLoading((previous) => ({
+                ...previous,
+                [food.id]: true
+            }));
 
-            alert("Food deleted successfully.");
+            await CustomerService.addToCart({
+                foodId: food.id,
+                quantity: 1
+            });
 
-            await loadFoods();
+            alert(`${food.foodName} added to cart.`);
 
+            navigate("/cart");
         } catch (error) {
-            console.error("Failed to delete food:", error);
+            console.error("Add to cart error:", error);
 
             if (error.response?.status === 401) {
-                alert("Your session has expired. Please login again.");
-            } else if (error.response?.status === 403) {
-                alert("You do not have permission to delete this food.");
-            } else {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                localStorage.removeItem("role");
+
                 alert(
-                    error.response?.data?.message ||
-                    error.response?.data ||
-                    "Failed to delete food."
+                    "Your session has expired. Please login again."
                 );
+
+                navigate("/login");
+                return;
             }
+
+            if (error.response?.status === 403) {
+                alert(
+                    "You are not authorized to add this item to cart."
+                );
+                return;
+            }
+
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                "Unable to add food to cart.";
+
+            alert(String(message));
+        } finally {
+            setCartLoading((previous) => ({
+                ...previous,
+                [food.id]: false
+            }));
         }
     };
 
-    // ============================================================
+    // =========================================================
+    // TOGGLE FAVORITE
+    // =========================================================
+
+    const toggleFavorite = async (food) => {
+        if (!requireLogin()) {
+            return;
+        }
+
+        const user = getCurrentUser();
+
+        if (!user?.id) {
+            alert(
+                "User information not found. Please login again."
+            );
+            return;
+        }
+
+        const isFavorite = favoriteIds.includes(food.id);
+
+        try {
+            setFavoriteLoading((previous) => ({
+                ...previous,
+                [food.id]: true
+            }));
+
+            if (isFavorite) {
+                alert(
+                    "This item is already in Favorites. Remove it from the Favorites page."
+                );
+                return;
+            }
+
+            await API.post("/favorites", {
+                userId: user.id,
+                foodId: food.id
+            });
+
+            setFavoriteIds((previous) => {
+                if (previous.includes(food.id)) {
+                    return previous;
+                }
+
+                return [...previous, food.id];
+            });
+
+            alert(
+                `${food.foodName} added to Favorites ❤️`
+            );
+        } catch (error) {
+            console.error("Favorite error:", error);
+
+            if (error.response?.status === 401) {
+                alert("Please login again.");
+                navigate("/login");
+                return;
+            }
+
+            if (error.response?.status === 403) {
+                alert(
+                    "You are not authorized to use Favorites."
+                );
+                return;
+            }
+
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                "Unable to update Favorites.";
+
+            if (
+                String(message)
+                    .toLowerCase()
+                    .includes("already")
+            ) {
+                setFavoriteIds((previous) =>
+                    previous.includes(food.id)
+                        ? previous
+                        : [...previous, food.id]
+                );
+
+                alert(
+                    `${food.foodName} is already in Favorites.`
+                );
+
+                return;
+            }
+
+            alert(String(message));
+        } finally {
+            setFavoriteLoading((previous) => ({
+                ...previous,
+                [food.id]: false
+            }));
+        }
+    };
+
+    // =========================================================
+    // TOGGLE WISHLIST
+    // =========================================================
+
+    const toggleWishlist = async (food) => {
+        if (!requireLogin()) {
+            return;
+        }
+
+        const isWishlist = wishlistIds.includes(food.id);
+
+        if (isWishlist) {
+            alert(
+                "This item is already in your Wishlist. Remove it from the Wishlist page."
+            );
+            return;
+        }
+
+        try {
+            setWishlistLoading((previous) => ({
+                ...previous,
+                [food.id]: true
+            }));
+
+            /*
+             * Backend expects:
+             *
+             * POST /api/wishlist?foodId=123
+             */
+
+            await API.post(
+                `/wishlist?foodId=${food.id}`
+            );
+
+            setWishlistIds((previous) => {
+                if (previous.includes(food.id)) {
+                    return previous;
+                }
+
+                return [...previous, food.id];
+            });
+
+            alert(
+                `${food.foodName} added to Wishlist ♡`
+            );
+        } catch (error) {
+            console.error("Wishlist error:", error);
+
+            if (error.response?.status === 401) {
+                alert("Please login again.");
+                navigate("/login");
+                return;
+            }
+
+            if (error.response?.status === 403) {
+                alert(
+                    "You are not authorized to use Wishlist."
+                );
+                return;
+            }
+
+            const message =
+                error.response?.data?.message ||
+                error.response?.data ||
+                "Unable to add food to Wishlist.";
+
+            if (
+                String(message)
+                    .toLowerCase()
+                    .includes("already exists")
+            ) {
+                setWishlistIds((previous) =>
+                    previous.includes(food.id)
+                        ? previous
+                        : [...previous, food.id]
+                );
+
+                alert(
+                    `${food.foodName} is already in your Wishlist.`
+                );
+
+                return;
+            }
+
+            alert(String(message));
+        } finally {
+            setWishlistLoading((previous) => ({
+                ...previous,
+                [food.id]: false
+            }));
+        }
+    };
+
+    // =========================================================
+    // CATEGORIES
+    // =========================================================
+
+    const categories = useMemo(() => {
+        const categorySet = new Set();
+
+        foods.forEach((food) => {
+            if (food?.category) {
+                categorySet.add(
+                    normalizeCategory(food.category)
+                );
+            }
+        });
+
+        return Array.from(categorySet);
+    }, [foods]);
+
+    // =========================================================
+    // CATEGORY NAME
+    // =========================================================
+
+    const getCategoryName = (category) => {
+        if (categoryInfo[category]) {
+            return categoryInfo[category].name;
+        }
+
+        return String(category)
+            .replace(/_/g, " ")
+            .toLowerCase()
+            .replace(/\b\w/g, (letter) =>
+                letter.toUpperCase()
+            );
+    };
+
+    // =========================================================
+    // CATEGORY ICON
+    // =========================================================
+
+    const getCategoryIcon = (category) => {
+        if (categoryInfo[category]) {
+            return categoryInfo[category].icon;
+        }
+
+        return "🍽️";
+    };
+
+    // =========================================================
+    // CATEGORY COUNT
+    // =========================================================
+
+    const getCategoryCount = (category) => {
+        if (category === "ALL") {
+            return foods.length;
+        }
+
+        return foods.filter(
+            (food) =>
+                normalizeCategory(food.category) ===
+                category
+        ).length;
+    };
+
+    // =========================================================
+    // FILTER FOODS
+    // =========================================================
+
+    const filteredFoods = useMemo(() => {
+        const searchText =
+            search.trim().toLowerCase();
+
+        return foods.filter((food) => {
+            const foodCategory =
+                normalizeCategory(food.category);
+
+            const matchesCategory =
+                selectedCategory === "ALL" ||
+                foodCategory === selectedCategory;
+
+            const foodName =
+                food.foodName?.toLowerCase() || "";
+
+            const description =
+                food.description?.toLowerCase() || "";
+
+            const category =
+                food.category?.toLowerCase() || "";
+
+            const matchesSearch =
+                !searchText ||
+                foodName.includes(searchText) ||
+                description.includes(searchText) ||
+                category.includes(searchText);
+
+            return (
+                matchesCategory &&
+                matchesSearch
+            );
+        });
+    }, [
+        foods,
+        search,
+        selectedCategory
+    ]);
+
+    // =========================================================
+    // GROUP FOODS
+    // =========================================================
+
+    const groupedFoods = useMemo(() => {
+        const groups = {};
+
+        filteredFoods.forEach((food) => {
+            const category =
+                normalizeCategory(food.category);
+
+            if (!groups[category]) {
+                groups[category] = [];
+            }
+
+            groups[category].push(food);
+        });
+
+        return groups;
+    }, [filteredFoods]);
+
+    // =========================================================
     // LOADING
-    // ============================================================
+    // =========================================================
 
     if (loading) {
         return (
-            <div className="container mt-4">
-                <h2>Food Management</h2>
+            <div className="foods-loading">
+                <div className="foods-spinner"></div>
 
-                <div className="alert alert-info mt-3">
-                    Loading foods...
-                </div>
+                <h3>
+                    Loading restaurant menu...
+                </h3>
+
+                <p>
+                    Please wait while we prepare the menu.
+                </p>
             </div>
         );
     }
 
-    // ============================================================
+    // =========================================================
     // PAGE
-    // ============================================================
+    // =========================================================
 
     return (
-        <div className="container mt-4 mb-5">
+        <div className="foods-page">
 
-            {/* =====================================================
-                HEADER
-            ====================================================== */}
+            {/* =================================================
+                HERO
+            ================================================= */}
 
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <section className="foods-hero">
 
-                <h2 className="mb-0">
-                    Food Management
-                </h2>
+                <div>
+                    <span className="foods-kicker">
+                        BPR FLAVORS HUB
+                    </span>
 
-                <span className="badge bg-primary fs-6">
-                    {foods.length} Foods
-                </span>
+                    <h1>
+                        Explore Our Menu
+                    </h1>
+
+                    <p>
+                        Discover delicious dishes prepared
+                        fresh for you.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="view-cart-button"
+                    onClick={() => navigate("/cart")}
+                >
+                    🛒 View Cart
+                </button>
+
+            </section>
+
+            {/* =================================================
+                SEARCH
+            ================================================= */}
+
+            <div className="foods-search-card">
+
+                <div className="foods-search">
+
+                    <span>
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        placeholder="Search food, category..."
+                        value={search}
+                        onChange={(event) =>
+                            setSearch(event.target.value)
+                        }
+                    />
+
+                    {search && (
+                        <button
+                            type="button"
+                            onClick={() => setSearch("")}
+                        >
+                            ×
+                        </button>
+                    )}
+
+                </div>
 
             </div>
 
-            {/* =====================================================
-                EMPTY
-            ====================================================== */}
+            {/* =================================================
+                CATEGORY FILTER
+            ================================================= */}
 
-            {foods.length === 0 ? (
+            <section className="category-section">
 
-                <div className="alert alert-warning">
-                    No food items found.
+                <div className="section-heading">
+
+                    <div>
+                        <span className="small-label">
+                            MENU
+                        </span>
+
+                        <h2>
+                            Food Categories
+                        </h2>
+                    </div>
+
+                    <span className="food-count">
+                        {filteredFoods.length} foods
+                    </span>
+
+                </div>
+
+                <div className="category-list">
+
+                    <button
+                        type="button"
+                        className={
+                            selectedCategory === "ALL"
+                                ? "category-button active"
+                                : "category-button"
+                        }
+                        onClick={() =>
+                            setSelectedCategory("ALL")
+                        }
+                    >
+                        <span>🍽️</span>
+
+                        All
+
+                        <b>
+                            {getCategoryCount("ALL")}
+                        </b>
+                    </button>
+
+                    {categories.map((category) => (
+                        <button
+                            type="button"
+                            key={category}
+                            className={
+                                selectedCategory === category
+                                    ? "category-button active"
+                                    : "category-button"
+                            }
+                            onClick={() =>
+                                setSelectedCategory(category)
+                            }
+                        >
+                            <span>
+                                {getCategoryIcon(category)}
+                            </span>
+
+                            {getCategoryName(category)}
+
+                            <b>
+                                {getCategoryCount(category)}
+                            </b>
+                        </button>
+                    ))}
+
+                </div>
+
+            </section>
+
+            {/* =================================================
+                NO FOODS
+            ================================================= */}
+
+            {filteredFoods.length === 0 ? (
+
+                <div className="empty-foods">
+
+                    <div className="empty-icon">
+                        🍽️
+                    </div>
+
+                    <h2>
+                        No Foods Found
+                    </h2>
+
+                    <p>
+                        Try another food name or category.
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setSearch("");
+                            setSelectedCategory("ALL");
+                        }}
+                    >
+                        Show All Foods
+                    </button>
+
                 </div>
 
             ) : (
 
-                <div className="table-responsive">
+                /* =================================================
+                   FOOD GROUPS
+                ================================================= */
 
-                    <table className="table table-bordered table-striped table-hover align-middle">
+                Object.entries(groupedFoods).map(
+                    ([category, categoryFoods]) => (
 
-                        <thead className="table-dark">
+                        <section
+                            className="food-category-section"
+                            key={category}
+                        >
 
-                            <tr>
+                            <div className="food-category-heading">
 
-                                <th>ID</th>
+                                <div>
+                                    <span className="category-icon">
+                                        {getCategoryIcon(category)}
+                                    </span>
 
-                                <th>Image</th>
+                                    <h2>
+                                        {getCategoryName(category)}
+                                    </h2>
+                                </div>
 
-                                <th>Food Name</th>
+                                <span>
+                                    {categoryFoods.length} items
+                                </span>
 
-                                <th>Restaurant</th>
+                            </div>
 
-                                <th>Category</th>
+                            <div className="food-grid">
 
-                                <th>Price</th>
+                                {categoryFoods.map((food) => {
 
-                                <th>Available</th>
+                                    const isFavorite =
+                                        favoriteIds.includes(
+                                            food.id
+                                        );
 
-                                <th>Action</th>
+                                    const isWishlist =
+                                        wishlistIds.includes(
+                                            food.id
+                                        );
 
-                            </tr>
+                                    return (
+                                        <article
+                                            className="food-card"
+                                            key={food.id}
+                                        >
 
-                        </thead>
+                                            {/* IMAGE */}
 
-                        <tbody>
-
-                            {foods.map((food) => {
-
-                                const imageUrl = getImageUrl(
-                                    food.image
-                                );
-
-                                return (
-
-                                    <tr key={food.id}>
-
-                                        {/* ID */}
-
-                                        <td>
-                                            {food.id}
-                                        </td>
-
-                                        {/* IMAGE */}
-
-                                        <td>
-
-                                            {imageUrl ? (
+                                            <div className="food-image-wrapper">
 
                                                 <img
-                                                    src={imageUrl}
+                                                    src={
+                                                        food.image ||
+                                                        "https://via.placeholder.com/600x400?text=Food"
+                                                    }
                                                     alt={
-                                                        food.name ||
                                                         food.foodName ||
                                                         "Food"
                                                     }
-                                                    width="80"
-                                                    height="60"
-                                                    style={{
-                                                        objectFit: "cover",
-                                                        borderRadius: "8px",
-                                                        border: "1px solid #ddd"
-                                                    }}
-                                                    onError={(e) => {
-                                                        e.currentTarget.style.display =
-                                                            "none";
+                                                    onError={(event) => {
+                                                        event.currentTarget.onerror =
+                                                            null;
+
+                                                        event.currentTarget.src =
+                                                            "https://via.placeholder.com/600x400?text=Food";
                                                     }}
                                                 />
 
-                                            ) : (
+                                                <div className="food-image-overlay"></div>
 
-                                                <span className="text-muted">
-                                                    No Image
+                                                {/* AVAILABILITY */}
+
+                                                <span
+                                                    className={
+                                                        food.available
+                                                            ? "availability available"
+                                                            : "availability unavailable"
+                                                    }
+                                                >
+                                                    {food.available
+                                                        ? "● Available"
+                                                        : "● Unavailable"}
                                                 </span>
 
-                                            )}
+                                                {/* FAVORITE */}
 
-                                        </td>
+                                                <button
+                                                    type="button"
+                                                    className={
+                                                        isFavorite
+                                                            ? "heart-button active"
+                                                            : "heart-button"
+                                                    }
+                                                    onClick={() =>
+                                                        toggleFavorite(
+                                                            food
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        favoriteLoading[
+                                                            food.id
+                                                        ]
+                                                    }
+                                                    title="Favorite"
+                                                >
+                                                    {isFavorite
+                                                        ? "❤️"
+                                                        : "🤍"}
+                                                </button>
 
-                                        {/* FOOD NAME */}
+                                            </div>
 
-                                        <td>
+                                            {/* DETAILS */}
 
-                                            <strong>
-                                                {food.name ||
-                                                    food.foodName ||
-                                                    "N/A"}
-                                            </strong>
+                                            <div className="food-content">
 
-                                        </td>
+                                                <div className="food-title-row">
 
-                                        {/* RESTAURANT */}
+                                                    <h3>
+                                                        {food.foodName}
+                                                    </h3>
 
-                                        <td>
-
-                                            {food.restaurantName ||
-                                                food.restaurant?.restaurantName ||
-                                                food.restaurant?.name ||
-                                                "N/A"}
-
-                                        </td>
-
-                                        {/* CATEGORY */}
-
-                                        <td>
-                                            {food.category || "N/A"}
-                                        </td>
-
-                                        {/* PRICE */}
-
-                                        <td>
-
-                                            <strong>
-                                                ₹{food.price ?? "0"}
-                                            </strong>
-
-                                        </td>
-
-                                        {/* AVAILABLE */}
-
-                                        <td>
-
-                                            {food.available !==
-                                            undefined ? (
-
-                                                food.available ? (
-
-                                                    <span className="badge bg-success">
-                                                        Available
+                                                    <span className="food-price">
+                                                        ₹{food.price}
                                                     </span>
 
-                                                ) : (
+                                                </div>
 
-                                                    <span className="badge bg-danger">
-                                                        Unavailable
+                                                <p className="food-description">
+                                                    {food.description ||
+                                                        "Delicious food prepared fresh for you."}
+                                                </p>
+
+                                                <div className="food-meta">
+
+                                                    <span>
+                                                        {getCategoryIcon(
+                                                            normalizeCategory(
+                                                                food.category
+                                                            )
+                                                        )}
+
+                                                        {" "}
+
+                                                        {getCategoryName(
+                                                            normalizeCategory(
+                                                                food.category
+                                                            )
+                                                        )}
                                                     </span>
 
-                                                )
+                                                </div>
 
-                                            ) : (
+                                                {/* ACTIONS */}
 
-                                                <span className="badge bg-secondary">
-                                                    N/A
-                                                </span>
+                                                <div className="food-actions">
 
-                                            )}
+                                                    <button
+                                                        type="button"
+                                                        className="add-cart-button"
+                                                        disabled={
+                                                            !food.available ||
+                                                            cartLoading[
+                                                                food.id
+                                                            ]
+                                                        }
+                                                        onClick={() =>
+                                                            addToCart(
+                                                                food
+                                                            )
+                                                        }
+                                                    >
+                                                        {cartLoading[
+                                                            food.id
+                                                        ]
+                                                            ? "Adding..."
+                                                            : "🛒 Add To Cart"}
+                                                    </button>
 
-                                        </td>
+                                                    <button
+                                                        type="button"
+                                                        className={
+                                                            isWishlist
+                                                                ? "wishlist-button active"
+                                                                : "wishlist-button"
+                                                        }
+                                                        disabled={
+                                                            wishlistLoading[
+                                                                food.id
+                                                            ]
+                                                        }
+                                                        onClick={() =>
+                                                            toggleWishlist(
+                                                                food
+                                                            )
+                                                        }
+                                                        title="Wishlist"
+                                                    >
+                                                        {isWishlist
+                                                            ? "♥"
+                                                            : "♡"}
+                                                    </button>
 
-                                        {/* DELETE */}
+                                                </div>
 
-                                        <td>
+                                            </div>
 
-                                            <button
-                                                type="button"
-                                                className="btn btn-danger btn-sm"
-                                                onClick={() =>
-                                                    deleteFood(
-                                                        food.id
-                                                    )
-                                                }
-                                            >
-                                                Delete
-                                            </button>
+                                        </article>
+                                    );
+                                })}
 
-                                        </td>
+                            </div>
 
-                                    </tr>
-
-                                );
-                            })}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
+                        </section>
+                    )
+                )
             )}
 
         </div>
