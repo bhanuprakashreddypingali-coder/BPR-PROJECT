@@ -1,12 +1,18 @@
 import axios from "axios";
 
 // ============================================================
-// BASE API
+// PRODUCTION BACKEND
 // ============================================================
 
-// Railway production backend
+const API_BASE_URL =
+    "https://bpr-backend-production-3381.up.railway.app/api";
+
+// ============================================================
+// AXIOS INSTANCE
+// ============================================================
+
 const API = axios.create({
-    baseURL: "https://bpr-backend-production-3381.up.railway.app/api",
+    baseURL: API_BASE_URL,
 
     headers: {
         "Content-Type": "application/json",
@@ -21,7 +27,10 @@ const API = axios.create({
 API.interceptors.request.use(
     (config) => {
 
-        const token = localStorage.getItem("token");
+        const token =
+            localStorage.getItem("token") ||
+            localStorage.getItem("jwtToken") ||
+            localStorage.getItem("accessToken");
 
         if (token) {
             config.headers = config.headers || {};
@@ -52,22 +61,21 @@ API.interceptors.response.use(
         console.error(
             "API ERROR:",
             status,
-            error.response?.data
+            error.response?.data || error.message
         );
 
-        // Unauthorized
         if (status === 401) {
 
+            console.warn("401 Unauthorized");
+
             localStorage.removeItem("token");
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("accessToken");
             localStorage.removeItem("user");
             localStorage.removeItem("role");
-
-            console.warn("401 Unauthorized - session cleared");
         }
 
-        // Forbidden
         if (status === 403) {
-
             console.warn(
                 "403 Forbidden - check authentication and role"
             );

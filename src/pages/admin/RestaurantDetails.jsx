@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import API from "../../services/ApiService";
 
 function RestaurantDetails() {
-
     const { id } = useParams();
     const navigate = useNavigate();
 
@@ -11,49 +10,108 @@ function RestaurantDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    // ======================================================
+    // LOAD RESTAURANT
+    // ======================================================
+
     useEffect(() => {
         loadRestaurant();
     }, [id]);
 
     const loadRestaurant = async () => {
-
         try {
+            setLoading(true);
+            setError("");
 
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                `http://localhost:8080/api/restaurants/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
+            const response = await API.get(
+                `/restaurants/${id}`
             );
 
             setRestaurant(response.data);
 
         } catch (error) {
-
-            console.error(error);
-
-            setError(
-                error.response?.data ||
-                "Failed to load restaurant details."
+            console.error(
+                "Failed to load restaurant:",
+                error
             );
 
+            if (error.response?.status === 401) {
+                setError(
+                    "Your session has expired. Please login again."
+                );
+            } else if (error.response?.status === 403) {
+                setError(
+                    "You do not have permission to view this restaurant."
+                );
+            } else if (error.response?.status === 404) {
+                setError(
+                    "Restaurant not found."
+                );
+            } else {
+                setError(
+                    error.response?.data?.message ||
+                    error.response?.data ||
+                    "Failed to load restaurant details."
+                );
+            }
+
         } finally {
-
             setLoading(false);
-
         }
     };
 
-    if (loading) {
+    // ======================================================
+    // IMAGE URL
+    // ======================================================
 
+    const getImageUrl = (image) => {
+        if (!image) {
+            return null;
+        }
+
+        if (
+            image.startsWith("http://") ||
+            image.startsWith("https://")
+        ) {
+            return image;
+        }
+
+        const backendUrl =
+            API.defaults.baseURL.replace(/\/api\/?$/, "");
+
+        if (image.startsWith("/")) {
+            return `${backendUrl}${image}`;
+        }
+
+        return `${backendUrl}/${image}`;
+    };
+
+    // ======================================================
+    // VALUE HELPER
+    // ======================================================
+
+    const value = (data) => {
+        if (
+            data === null ||
+            data === undefined ||
+            data === ""
+        ) {
+            return "Not provided";
+        }
+
+        return data;
+    };
+
+    // ======================================================
+    // LOADING
+    // ======================================================
+
+    if (loading) {
         return (
             <div className="container mt-4">
 
                 <button
+                    type="button"
                     className="btn btn-secondary mb-3"
                     onClick={() =>
                         navigate("/admin/restaurants")
@@ -70,12 +128,16 @@ function RestaurantDetails() {
         );
     }
 
-    if (error || !restaurant) {
+    // ======================================================
+    // ERROR
+    // ======================================================
 
+    if (error || !restaurant) {
         return (
             <div className="container mt-4">
 
                 <button
+                    type="button"
                     className="btn btn-secondary mb-3"
                     onClick={() =>
                         navigate("/admin/restaurants")
@@ -85,31 +147,29 @@ function RestaurantDetails() {
                 </button>
 
                 <div className="alert alert-danger">
-                    {error || "Restaurant not found."}
+                    {error ||
+                        "Restaurant not found."}
                 </div>
 
             </div>
         );
     }
 
-    const value = (data) => {
+    const imageUrl = getImageUrl(
+        restaurant.image
+    );
 
-        if (
-            data === null ||
-            data === undefined ||
-            data === ""
-        ) {
-            return "Not provided";
-        }
-
-        return data;
-    };
+    // ======================================================
+    // PAGE
+    // ======================================================
 
     return (
-
         <div className="container mt-4 mb-5">
 
+            {/* BACK BUTTON */}
+
             <button
+                type="button"
                 className="btn btn-secondary mb-4"
                 onClick={() =>
                     navigate("/admin/restaurants")
@@ -118,7 +178,9 @@ function RestaurantDetails() {
                 ← Back to Restaurants
             </button>
 
-            {/* Restaurant Header */}
+            {/* ==================================================
+                RESTAURANT HEADER
+            ================================================== */}
 
             <div className="card shadow mb-4">
 
@@ -126,14 +188,28 @@ function RestaurantDetails() {
 
                     <div className="row">
 
+                        {/* IMAGE */}
+
                         <div className="col-md-4">
 
-                            {restaurant.image ? (
+                            {imageUrl ? (
 
                                 <img
-                                    src={restaurant.image}
-                                    alt={restaurant.restaurantName}
+                                    src={imageUrl}
+                                    alt={
+                                        restaurant.restaurantName ||
+                                        "Restaurant"
+                                    }
                                     className="img-fluid rounded"
+                                    style={{
+                                        width: "100%",
+                                        maxHeight: "300px",
+                                        objectFit: "cover"
+                                    }}
+                                    onError={(event) => {
+                                        event.currentTarget.style.display =
+                                            "none";
+                                    }}
                                 />
 
                             ) : (
@@ -145,6 +221,8 @@ function RestaurantDetails() {
                             )}
 
                         </div>
+
+                        {/* BASIC DETAILS */}
 
                         <div className="col-md-8">
 
@@ -158,14 +236,19 @@ function RestaurantDetails() {
                                 <strong>
                                     Restaurant ID:
                                 </strong>{" "}
-                                {value(restaurant.id)}
+                                {value(
+                                    restaurant.id
+                                )}
                             </p>
 
                             <p>
                                 <strong>
                                     Rating:
                                 </strong>{" "}
-                                ⭐ {value(restaurant.rating)}
+                                ⭐{" "}
+                                {value(
+                                    restaurant.rating
+                                )}
                             </p>
 
                         </div>
@@ -176,8 +259,9 @@ function RestaurantDetails() {
 
             </div>
 
-
-            {/* Restaurant Information */}
+            {/* ==================================================
+                RESTAURANT INFORMATION
+            ================================================== */}
 
             <div className="card shadow mb-4">
 
@@ -193,6 +277,8 @@ function RestaurantDetails() {
 
                     <div className="row">
 
+                        {/* NAME */}
+
                         <div className="col-md-6 mb-3">
 
                             <strong>
@@ -206,6 +292,8 @@ function RestaurantDetails() {
                             </div>
 
                         </div>
+
+                        {/* OWNER */}
 
                         <div className="col-md-6 mb-3">
 
@@ -221,6 +309,8 @@ function RestaurantDetails() {
 
                         </div>
 
+                        {/* EMAIL */}
+
                         <div className="col-md-6 mb-3">
 
                             <strong>
@@ -234,6 +324,8 @@ function RestaurantDetails() {
                             </div>
 
                         </div>
+
+                        {/* PHONE */}
 
                         <div className="col-md-6 mb-3">
 
@@ -249,6 +341,8 @@ function RestaurantDetails() {
 
                         </div>
 
+                        {/* ADDRESS */}
+
                         <div className="col-md-12 mb-3">
 
                             <strong>
@@ -262,6 +356,8 @@ function RestaurantDetails() {
                             </div>
 
                         </div>
+
+                        {/* DESCRIPTION */}
 
                         <div className="col-md-12 mb-3">
 
@@ -283,8 +379,9 @@ function RestaurantDetails() {
 
             </div>
 
-
-            {/* Opening Hours */}
+            {/* ==================================================
+                OPENING HOURS
+            ================================================== */}
 
             <div className="card shadow mb-4">
 
@@ -300,9 +397,11 @@ function RestaurantDetails() {
 
                     <div className="row">
 
-                        <div className="col-md-6">
+                        {/* OPENING */}
 
-                            <div className="card border-success">
+                        <div className="col-md-6 mb-3">
+
+                            <div className="card border-success h-100">
 
                                 <div className="card-body">
 
@@ -322,9 +421,11 @@ function RestaurantDetails() {
 
                         </div>
 
-                        <div className="col-md-6">
+                        {/* CLOSING */}
 
-                            <div className="card border-danger">
+                        <div className="col-md-6 mb-3">
+
+                            <div className="card border-danger h-100">
 
                                 <div className="card-body">
 
@@ -350,15 +451,19 @@ function RestaurantDetails() {
 
             </div>
 
-
-            {/* Back */}
+            {/* ==================================================
+                BACK
+            ================================================== */}
 
             <div className="text-center">
 
                 <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() =>
-                        navigate("/admin/restaurants")
+                        navigate(
+                            "/admin/restaurants"
+                        )
                     }
                 >
                     ← Back to Restaurant Management

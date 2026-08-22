@@ -1,87 +1,79 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../services/ApiService";
 
 function Reports() {
-
     const [report, setReport] = useState(null);
-
     const [loading, setLoading] = useState(true);
-
     const [error, setError] = useState("");
-
 
     // ======================================================
     // LOAD REPORT
     // ======================================================
 
     useEffect(() => {
-
         loadReports();
-
     }, []);
 
-
     const loadReports = async () => {
-
         try {
+            setLoading(true);
+            setError("");
 
-            const token = localStorage.getItem("token");
-
-            const response = await axios.get(
-                "http://localhost:8080/api/admin/reports",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
+            const response = await API.get("/admin/reports");
 
             setReport(response.data);
 
         } catch (error) {
-
             console.error(
                 "Failed to load reports:",
                 error
             );
 
-            setError(
-                error.response?.data ||
-                "Reports API is not available."
-            );
+            if (error.response?.status === 401) {
+                setError(
+                    "Your session has expired. Please login again."
+                );
+            } else if (error.response?.status === 403) {
+                setError(
+                    "You do not have permission to view admin reports."
+                );
+            } else if (error.response?.status === 404) {
+                setError(
+                    "Reports API endpoint was not found on the backend."
+                );
+            } else {
+                setError(
+                    error.response?.data?.message ||
+                    error.response?.data ||
+                    "Reports API is not available."
+                );
+            }
 
         } finally {
-
             setLoading(false);
-
         }
     };
-
 
     // ======================================================
     // HELPER
     // ======================================================
 
     const getValue = (value) => {
-
         if (
             value === null ||
             value === undefined
         ) {
-
             return 0;
         }
 
         return value;
     };
 
-
     // ======================================================
     // LOADING
     // ======================================================
 
     if (loading) {
-
         return (
             <div className="container mt-4">
 
@@ -97,24 +89,34 @@ function Reports() {
         );
     }
 
-
     // ======================================================
     // ERROR
     // ======================================================
 
     if (error) {
-
         return (
             <div className="container mt-4">
 
-                <h2 className="mb-4">
-                    Reports
-                </h2>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+
+                    <h2 className="mb-0">
+                        Reports
+                    </h2>
+
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={loadReports}
+                    >
+                        🔄 Retry
+                    </button>
+
+                </div>
 
                 <div className="alert alert-warning">
 
                     <h5>
-                        Reports are not available yet.
+                        Reports are not available.
                     </h5>
 
                     <p className="mb-0">
@@ -127,14 +129,16 @@ function Reports() {
         );
     }
 
-
     // ======================================================
     // PAGE
     // ======================================================
 
     return (
-
         <div className="container mt-4 mb-5">
+
+            {/* ==================================================
+                HEADER
+            ================================================== */}
 
             <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -143,6 +147,7 @@ function Reports() {
                 </h2>
 
                 <button
+                    type="button"
                     className="btn btn-primary"
                     onClick={loadReports}
                 >
@@ -151,13 +156,11 @@ function Reports() {
 
             </div>
 
-
             {/* ==================================================
                 SUMMARY CARDS
             ================================================== */}
 
             <div className="row g-4 mb-4">
-
 
                 {/* TOTAL USERS */}
 
@@ -183,7 +186,6 @@ function Reports() {
 
                 </div>
 
-
                 {/* RESTAURANTS */}
 
                 <div className="col-md-3">
@@ -208,7 +210,6 @@ function Reports() {
 
                 </div>
 
-
                 {/* FOODS */}
 
                 <div className="col-md-3">
@@ -232,7 +233,6 @@ function Reports() {
                     </div>
 
                 </div>
-
 
                 {/* ORDERS */}
 
@@ -260,17 +260,17 @@ function Reports() {
 
             </div>
 
-
             {/* ==================================================
                 SALES
             ================================================== */}
 
             <div className="row g-4 mb-4">
 
+                {/* TOTAL REVENUE */}
 
                 <div className="col-md-4">
 
-                    <div className="card shadow">
+                    <div className="card shadow h-100">
 
                         <div className="card-body">
 
@@ -293,10 +293,11 @@ function Reports() {
 
                 </div>
 
+                {/* PENDING ORDERS */}
 
                 <div className="col-md-4">
 
-                    <div className="card shadow">
+                    <div className="card shadow h-100">
 
                         <div className="card-body">
 
@@ -318,10 +319,11 @@ function Reports() {
 
                 </div>
 
+                {/* COMPLETED ORDERS */}
 
                 <div className="col-md-4">
 
-                    <div className="card shadow">
+                    <div className="card shadow h-100">
 
                         <div className="card-body">
 
@@ -344,7 +346,6 @@ function Reports() {
                 </div>
 
             </div>
-
 
             {/* ==================================================
                 REPORT DATA
@@ -370,9 +371,7 @@ function Reports() {
 
                                 <tbody>
 
-                                    {Object.entries(
-                                        report
-                                    ).map(
+                                    {Object.entries(report).map(
                                         ([key, value]) => (
 
                                             <tr key={key}>
@@ -384,7 +383,8 @@ function Reports() {
                                                 <td>
 
                                                     {typeof value ===
-                                                    "object"
+                                                    "object" &&
+                                                    value !== null
                                                         ? JSON.stringify(
                                                             value
                                                         )

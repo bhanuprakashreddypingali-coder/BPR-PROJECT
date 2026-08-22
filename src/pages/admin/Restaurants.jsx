@@ -1,46 +1,84 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import API from "../../services/ApiService";
 
 function Restaurants() {
-
     const [restaurants, setRestaurants] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const navigate = useNavigate();
+
+    // ======================================================
+    // LOAD RESTAURANTS
+    // ======================================================
 
     useEffect(() => {
         loadRestaurants();
     }, []);
 
     const loadRestaurants = async () => {
-
         try {
+            setLoading(true);
 
-            const token = localStorage.getItem("token");
+            const response = await API.get("/restaurants");
 
-            const response = await axios.get(
-                "http://localhost:8080/api/restaurants",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
+            setRestaurants(
+                Array.isArray(response.data)
+                    ? response.data
+                    : []
             );
 
-            setRestaurants(response.data);
-
         } catch (error) {
+            console.error(
+                "Failed to load restaurants:",
+                error
+            );
 
-            console.error("Failed to load restaurants:", error);
-
-            alert("Failed to load restaurants.");
+            if (error.response?.status === 401) {
+                alert(
+                    "Your session has expired. Please login again."
+                );
+            } else if (error.response?.status === 403) {
+                alert(
+                    "You do not have permission to view restaurants."
+                );
+            } else {
+                alert(
+                    error.response?.data?.message ||
+                    error.response?.data ||
+                    "Failed to load restaurants."
+                );
+            }
 
         } finally {
-
             setLoading(false);
-
         }
+    };
+
+    // ======================================================
+    // IMAGE URL
+    // ======================================================
+
+    const getImageUrl = (image) => {
+        if (!image) {
+            return null;
+        }
+
+        if (
+            image.startsWith("http://") ||
+            image.startsWith("https://")
+        ) {
+            return image;
+        }
+
+        const backendUrl =
+            API.defaults.baseURL.replace(/\/api\/?$/, "");
+
+        if (image.startsWith("/")) {
+            return `${backendUrl}${image}`;
+        }
+
+        return `${backendUrl}/${image}`;
     };
 
     // ======================================================
@@ -48,9 +86,7 @@ function Restaurants() {
     // ======================================================
 
     const viewRestaurant = (id) => {
-
         navigate(`/admin/restaurants/${id}`);
-
     };
 
     // ======================================================
@@ -58,7 +94,6 @@ function Restaurants() {
     // ======================================================
 
     if (loading) {
-
         return (
             <div className="container mt-4">
 
@@ -79,8 +114,9 @@ function Restaurants() {
     // ======================================================
 
     return (
+        <div className="container mt-4 mb-5">
 
-        <div className="container mt-4">
+            {/* HEADER */}
 
             <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -88,11 +124,25 @@ function Restaurants() {
                     Restaurant Management
                 </h2>
 
-                <span className="badge bg-primary fs-6">
-                    {restaurants.length} Restaurants
-                </span>
+                <div className="d-flex gap-2">
+
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary"
+                        onClick={loadRestaurants}
+                    >
+                        🔄 Refresh
+                    </button>
+
+                    <span className="badge bg-primary fs-6 d-flex align-items-center">
+                        {restaurants.length} Restaurants
+                    </span>
+
+                </div>
 
             </div>
+
+            {/* EMPTY */}
 
             {restaurants.length === 0 ? (
 
@@ -132,107 +182,129 @@ function Restaurants() {
 
                         <tbody>
 
-                            {restaurants.map((restaurant) => (
+                            {restaurants.map((restaurant) => {
 
-                                <tr key={restaurant.id}>
+                                const imageUrl =
+                                    getImageUrl(
+                                        restaurant.image
+                                    );
 
-                                    {/* ID */}
+                                return (
+                                    <tr
+                                        key={restaurant.id}
+                                    >
 
-                                    <td>
-                                        {restaurant.id}
-                                    </td>
+                                        {/* ID */}
 
-                                    {/* IMAGE */}
+                                        <td>
+                                            {restaurant.id}
+                                        </td>
 
-                                    <td>
+                                        {/* IMAGE */}
 
-                                        {restaurant.image ? (
+                                        <td>
 
-                                            <img
-                                                src={restaurant.image}
-                                                alt={
-                                                    restaurant.restaurantName ||
-                                                    "Restaurant"
-                                                }
-                                                width="80"
-                                                height="60"
-                                                style={{
-                                                    objectFit: "cover",
-                                                    borderRadius: "8px"
-                                                }}
-                                            />
+                                            {imageUrl ? (
 
-                                        ) : (
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={
+                                                        restaurant.restaurantName ||
+                                                        "Restaurant"
+                                                    }
+                                                    width="80"
+                                                    height="60"
+                                                    style={{
+                                                        objectFit:
+                                                            "cover",
+                                                        borderRadius:
+                                                            "8px",
+                                                        border:
+                                                            "1px solid #ddd"
+                                                    }}
+                                                    onError={(event) => {
+                                                        event.currentTarget.style.display =
+                                                            "none";
+                                                    }}
+                                                />
 
-                                            <span className="text-muted">
-                                                No Image
+                                            ) : (
+
+                                                <span className="text-muted">
+                                                    No Image
+                                                </span>
+
+                                            )}
+
+                                        </td>
+
+                                        {/* NAME */}
+
+                                        <td>
+
+                                            <strong>
+                                                {restaurant.restaurantName ||
+                                                    "N/A"}
+                                            </strong>
+
+                                        </td>
+
+                                        {/* OWNER */}
+
+                                        <td>
+                                            {restaurant.ownerName ||
+                                                "N/A"}
+                                        </td>
+
+                                        {/* EMAIL */}
+
+                                        <td>
+                                            {restaurant.email ||
+                                                "N/A"}
+                                        </td>
+
+                                        {/* PHONE */}
+
+                                        <td>
+                                            {restaurant.phone ||
+                                                "N/A"}
+                                        </td>
+
+                                        {/* RATING */}
+
+                                        <td>
+
+                                            <span className="badge bg-warning text-dark">
+
+                                                ⭐{" "}
+                                                {restaurant.rating ??
+                                                    "N/A"}
+
                                             </span>
 
-                                        )}
+                                        </td>
 
-                                    </td>
+                                        {/* ACTION */}
 
-                                    {/* NAME */}
+                                        <td>
 
-                                    <td>
+                                            <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                onClick={() =>
+                                                    viewRestaurant(
+                                                        restaurant.id
+                                                    )
+                                                }
+                                            >
+                                                View Details →
+                                            </button>
 
-                                        <strong>
-                                            {restaurant.restaurantName}
-                                        </strong>
+                                        </td>
 
-                                    </td>
-
-                                    {/* OWNER */}
-
-                                    <td>
-                                        {restaurant.ownerName || "N/A"}
-                                    </td>
-
-                                    {/* EMAIL */}
-
-                                    <td>
-                                        {restaurant.email || "N/A"}
-                                    </td>
-
-                                    {/* PHONE */}
-
-                                    <td>
-                                        {restaurant.phone || "N/A"}
-                                    </td>
-
-                                    {/* RATING */}
-
-                                    <td>
-
-                                        <span className="badge bg-warning text-dark">
-
-                                            ⭐{" "}
-                                            {restaurant.rating ?? "N/A"}
-
-                                        </span>
-
-                                    </td>
-
-                                    {/* ACTION */}
-
-                                    <td>
-
-                                        <button
-                                            className="btn btn-primary btn-sm"
-                                            onClick={() =>
-                                                viewRestaurant(
-                                                    restaurant.id
-                                                )
-                                            }
-                                        >
-                                            View Details →
-                                        </button>
-
-                                    </td>
-
-                                </tr>
-
-                            ))}
+                                    </tr>
+                                );
+                            })}
 
                         </tbody>
 
@@ -243,7 +315,6 @@ function Restaurants() {
             )}
 
         </div>
-
     );
 }
 

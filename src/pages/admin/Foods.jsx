@@ -1,50 +1,86 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import API from "../../services/ApiService";
 
 function Foods() {
-
     const [foods, setFoods] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // ============================================================
+    // BACKEND BASE URL
+    // ============================================================
+
+    const BACKEND_URL = API.defaults.baseURL.replace(/\/api\/?$/, "");
+
+    // ============================================================
+    // LOAD FOODS
+    // ============================================================
 
     useEffect(() => {
         loadFoods();
     }, []);
 
     const loadFoods = async () => {
-
         try {
+            setLoading(true);
 
-            const token = localStorage.getItem("token");
+            const response = await API.get("/foods");
 
-            const response = await axios.get(
-                "http://localhost:8080/api/foods",
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
+            setFoods(
+                Array.isArray(response.data)
+                    ? response.data
+                    : []
             );
-
-            setFoods(response.data);
 
         } catch (error) {
-
             console.error("Failed to load foods:", error);
 
-            alert(
-                error.response?.data ||
-                "Failed to load foods."
-            );
+            if (error.response?.status === 401) {
+                alert("Your session has expired. Please login again.");
+            } else if (error.response?.status === 403) {
+                alert("You do not have permission to view foods.");
+            } else {
+                alert(
+                    error.response?.data?.message ||
+                    error.response?.data ||
+                    "Failed to load foods."
+                );
+            }
 
         } finally {
-
             setLoading(false);
-
         }
     };
 
-    const deleteFood = async (id) => {
+    // ============================================================
+    // FOOD IMAGE URL
+    // ============================================================
 
+    const getImageUrl = (image) => {
+        if (!image) {
+            return null;
+        }
+
+        // Already a complete URL
+        if (
+            image.startsWith("http://") ||
+            image.startsWith("https://")
+        ) {
+            return image;
+        }
+
+        // Backend relative path
+        if (image.startsWith("/")) {
+            return `${BACKEND_URL}${image}`;
+        }
+
+        return `${BACKEND_URL}/${image}`;
+    };
+
+    // ============================================================
+    // DELETE FOOD
+    // ============================================================
+
+    const deleteFood = async (id) => {
         const confirmDelete = window.confirm(
             "Are you sure you want to delete this food?"
         );
@@ -54,55 +90,55 @@ function Foods() {
         }
 
         try {
-
-            const token = localStorage.getItem("token");
-
-            await axios.delete(
-                `http://localhost:8080/api/foods/${id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
+            await API.delete(`/foods/${id}`);
 
             alert("Food deleted successfully.");
 
-            loadFoods();
+            await loadFoods();
 
         } catch (error) {
+            console.error("Failed to delete food:", error);
 
-            console.error(error);
-
-            alert(
-                error.response?.data ||
-                "Failed to delete food."
-            );
+            if (error.response?.status === 401) {
+                alert("Your session has expired. Please login again.");
+            } else if (error.response?.status === 403) {
+                alert("You do not have permission to delete this food.");
+            } else {
+                alert(
+                    error.response?.data?.message ||
+                    error.response?.data ||
+                    "Failed to delete food."
+                );
+            }
         }
     };
 
-    if (loading) {
+    // ============================================================
+    // LOADING
+    // ============================================================
 
+    if (loading) {
         return (
             <div className="container mt-4">
-
-                <h2>
-                    Food Management
-                </h2>
+                <h2>Food Management</h2>
 
                 <div className="alert alert-info mt-3">
                     Loading foods...
                 </div>
-
             </div>
         );
     }
 
-    return (
+    // ============================================================
+    // PAGE
+    // ============================================================
 
+    return (
         <div className="container mt-4 mb-5">
 
-            {/* HEADER */}
+            {/* =====================================================
+                HEADER
+            ====================================================== */}
 
             <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -116,8 +152,9 @@ function Foods() {
 
             </div>
 
-
-            {/* EMPTY */}
+            {/* =====================================================
+                EMPTY
+            ====================================================== */}
 
             {foods.length === 0 ? (
 
@@ -157,146 +194,150 @@ function Foods() {
 
                         <tbody>
 
-                            {foods.map((food) => (
+                            {foods.map((food) => {
 
-                                <tr key={food.id}>
+                                const imageUrl = getImageUrl(
+                                    food.image
+                                );
 
-                                    {/* ID */}
+                                return (
 
-                                    <td>
-                                        {food.id}
-                                    </td>
+                                    <tr key={food.id}>
 
+                                        {/* ID */}
 
-                                    {/* IMAGE */}
+                                        <td>
+                                            {food.id}
+                                        </td>
 
-                                    <td>
+                                        {/* IMAGE */}
 
-                                        {food.image ? (
+                                        <td>
 
-                                            <img
-                                                src={food.image}
-                                                alt={
-                                                    food.name ||
-                                                    food.foodName ||
-                                                    "Food"
-                                                }
-                                                width="80"
-                                                height="60"
-                                                style={{
-                                                    objectFit: "cover",
-                                                    borderRadius: "8px"
-                                                }}
-                                            />
+                                            {imageUrl ? (
 
-                                        ) : (
-
-                                            <span className="text-muted">
-                                                No Image
-                                            </span>
-
-                                        )}
-
-                                    </td>
-
-
-                                    {/* NAME */}
-
-                                    <td>
-
-                                        <strong>
-                                            {food.name ||
-                                                food.foodName ||
-                                                "N/A"}
-                                        </strong>
-
-                                    </td>
-
-
-                                    {/* RESTAURANT */}
-
-                                    <td>
-
-                                        {food.restaurantName ||
-                                            food.restaurant?.restaurantName ||
-                                            food.restaurant?.name ||
-                                            "N/A"}
-
-                                    </td>
-
-
-                                    {/* CATEGORY */}
-
-                                    <td>
-                                        {food.category || "N/A"}
-                                    </td>
-
-
-                                    {/* PRICE */}
-
-                                    <td>
-
-                                        <strong>
-                                            ₹
-                                            {food.price ??
-                                                "0"}
-                                        </strong>
-
-                                    </td>
-
-
-                                    {/* AVAILABLE */}
-
-                                    <td>
-
-                                        {food.available !==
-                                            undefined ? (
-
-                                            food.available ? (
-
-                                                <span className="badge bg-success">
-                                                    Available
-                                                </span>
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={
+                                                        food.name ||
+                                                        food.foodName ||
+                                                        "Food"
+                                                    }
+                                                    width="80"
+                                                    height="60"
+                                                    style={{
+                                                        objectFit: "cover",
+                                                        borderRadius: "8px",
+                                                        border: "1px solid #ddd"
+                                                    }}
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display =
+                                                            "none";
+                                                    }}
+                                                />
 
                                             ) : (
 
-                                                <span className="badge bg-danger">
-                                                    Unavailable
+                                                <span className="text-muted">
+                                                    No Image
                                                 </span>
 
-                                            )
+                                            )}
 
-                                        ) : (
+                                        </td>
 
-                                            <span className="badge bg-secondary">
-                                                N/A
-                                            </span>
+                                        {/* FOOD NAME */}
 
-                                        )}
+                                        <td>
 
-                                    </td>
+                                            <strong>
+                                                {food.name ||
+                                                    food.foodName ||
+                                                    "N/A"}
+                                            </strong>
 
+                                        </td>
 
-                                    {/* DELETE */}
+                                        {/* RESTAURANT */}
 
-                                    <td>
+                                        <td>
 
-                                        <button
-                                            className="btn btn-danger btn-sm"
-                                            onClick={() =>
-                                                deleteFood(
-                                                    food.id
+                                            {food.restaurantName ||
+                                                food.restaurant?.restaurantName ||
+                                                food.restaurant?.name ||
+                                                "N/A"}
+
+                                        </td>
+
+                                        {/* CATEGORY */}
+
+                                        <td>
+                                            {food.category || "N/A"}
+                                        </td>
+
+                                        {/* PRICE */}
+
+                                        <td>
+
+                                            <strong>
+                                                ₹{food.price ?? "0"}
+                                            </strong>
+
+                                        </td>
+
+                                        {/* AVAILABLE */}
+
+                                        <td>
+
+                                            {food.available !==
+                                            undefined ? (
+
+                                                food.available ? (
+
+                                                    <span className="badge bg-success">
+                                                        Available
+                                                    </span>
+
+                                                ) : (
+
+                                                    <span className="badge bg-danger">
+                                                        Unavailable
+                                                    </span>
+
                                                 )
-                                            }
-                                        >
-                                            Delete
-                                        </button>
 
-                                    </td>
+                                            ) : (
 
-                                </tr>
+                                                <span className="badge bg-secondary">
+                                                    N/A
+                                                </span>
 
-                            ))}
+                                            )}
+
+                                        </td>
+
+                                        {/* DELETE */}
+
+                                        <td>
+
+                                            <button
+                                                type="button"
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() =>
+                                                    deleteFood(
+                                                        food.id
+                                                    )
+                                                }
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </td>
+
+                                    </tr>
+
+                                );
+                            })}
 
                         </tbody>
 

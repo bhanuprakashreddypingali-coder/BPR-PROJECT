@@ -1,20 +1,27 @@
 import axios from "axios";
 
 // ============================================================
-// BPR FLAVORS HUB - PRODUCTION API
+// PRODUCTION BACKEND
+// ============================================================
+
+const API_BASE_URL =
+    "https://bpr-backend-production-3381.up.railway.app/api";
+
+// ============================================================
+// AXIOS INSTANCE
 // ============================================================
 
 const api = axios.create({
-    baseURL: "https://bpr-backend-production-3381.up.railway.app/api",
+    baseURL: API_BASE_URL,
 
     headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-    },
+        Accept: "application/json"
+    }
 });
 
 // ============================================================
-// JWT TOKEN
+// JWT REQUEST INTERCEPTOR
 // ============================================================
 
 api.interceptors.request.use(
@@ -26,8 +33,11 @@ api.interceptors.request.use(
             localStorage.getItem("accessToken");
 
         if (token) {
+
             config.headers = config.headers || {};
-            config.headers.Authorization = `Bearer ${token}`;
+
+            config.headers.Authorization =
+                `Bearer ${token}`;
         }
 
         return config;
@@ -39,7 +49,7 @@ api.interceptors.request.use(
 );
 
 // ============================================================
-// RESPONSE HANDLING
+// RESPONSE INTERCEPTOR
 // ============================================================
 
 api.interceptors.response.use(
@@ -54,19 +64,25 @@ api.interceptors.response.use(
         console.error(
             "API ERROR:",
             status,
-            error.response?.data
+            error.response?.data || error.message
         );
 
         if (status === 401) {
-            console.error("Unauthorized request.");
+            console.warn("Unauthorized request.");
         }
 
         if (status === 403) {
-            console.error("Access denied.");
+            console.warn(
+                "Access denied. Check authentication or role."
+            );
         }
 
         return Promise.reject(error);
     }
 );
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 export default api;
