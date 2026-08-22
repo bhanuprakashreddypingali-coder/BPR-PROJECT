@@ -10,13 +10,12 @@ import {
 
 import "./home.css";
 
-
 // =========================================================
-// API
+// PRODUCTION BACKEND
 // =========================================================
 
-const API_URL = "http://localhost:8080";
-
+const API_URL =
+    "https://bpr-backend-production-3381.up.railway.app";
 
 // =========================================================
 // HOME
@@ -115,39 +114,29 @@ function Home() {
         restaurant
     ) => {
 
-        if (!restaurant?.image) {
+        const defaultImage =
+            "https://images.unsplash.com/" +
+            "photo-1517248135467-4c7edcad34c4" +
+            "?auto=format&fit=crop&w=900&q=80";
 
-            return (
-                "https://images.unsplash.com/" +
-                "photo-1517248135467-4c7edcad34c4" +
-                "?auto=format&fit=crop&w=900&q=80"
-            );
+        if (!restaurant?.image) {
+            return defaultImage;
         }
 
         if (
-            restaurant.image.startsWith(
-                "http://"
-            ) ||
-            restaurant.image.startsWith(
-                "https://"
-            )
+            restaurant.image.startsWith("http://") ||
+            restaurant.image.startsWith("https://")
         ) {
-
             return restaurant.image;
         }
 
         if (
             restaurant.image.startsWith("/")
         ) {
-
-            return (
-                `${API_URL}${restaurant.image}`
-            );
+            return `${API_URL}${restaurant.image}`;
         }
 
-        return (
-            `${API_URL}/${restaurant.image}`
-        );
+        return `${API_URL}/${restaurant.image}`;
     };
 
 
@@ -164,7 +153,6 @@ function Home() {
                     .toLowerCase();
 
             if (!keyword) {
-
                 return restaurants;
             }
 
@@ -237,7 +225,6 @@ function Home() {
             Number.isNaN(hours) ||
             Number.isNaN(minutes)
         ) {
-
             return null;
         }
 
@@ -266,13 +253,10 @@ function Home() {
                 restaurant?.closingTime
             );
 
-        // If no opening/closing time,
-        // consider restaurant available.
         if (
             opening === null ||
             closing === null
         ) {
-
             return true;
         }
 
@@ -283,36 +267,22 @@ function Home() {
             now.getHours() * 60 +
             now.getMinutes();
 
-        // -----------------------------------------------------
-        // NORMAL HOURS
-        // -----------------------------------------------------
-
         if (opening < closing) {
 
             return (
-                currentMinutes >=
-                    opening &&
-                currentMinutes <
-                    closing
+                currentMinutes >= opening &&
+                currentMinutes < closing
             );
         }
-
-        // -----------------------------------------------------
-        // OVERNIGHT HOURS
-        // Example: 18:00 - 02:00
-        // -----------------------------------------------------
 
         if (opening > closing) {
 
             return (
-                currentMinutes >=
-                    opening ||
-                currentMinutes <
-                    closing
+                currentMinutes >= opening ||
+                currentMinutes < closing
             );
         }
 
-        // Same opening/closing time
         return true;
     };
 
@@ -326,7 +296,6 @@ function Home() {
     ) => {
 
         if (!time) {
-
             return "Not available";
         }
 
@@ -337,7 +306,6 @@ function Home() {
             value.split(":");
 
         if (parts.length < 2) {
-
             return value;
         }
 
@@ -350,7 +318,6 @@ function Home() {
         if (
             Number.isNaN(hour)
         ) {
-
             return value;
         }
 
@@ -366,9 +333,7 @@ function Home() {
             hour = 12;
         }
 
-        return (
-            `${hour}:${minute} ${suffix}`
-        );
+        return `${hour}:${minute} ${suffix}`;
     };
 
 
@@ -388,7 +353,6 @@ function Home() {
         if (
             Number.isNaN(rating)
         ) {
-
             return "0.0";
         }
 
@@ -482,7 +446,6 @@ function Home() {
     // =========================================================
 
     const handleRetry = () => {
-
         fetchRestaurants();
     };
 
@@ -520,9 +483,7 @@ function Home() {
 
         <div className="home-page">
 
-            {/* =================================================
-                HERO
-            ================================================= */}
+            {/* HERO */}
 
             <section className="home-hero">
 
@@ -545,10 +506,7 @@ function Home() {
                         and order your favorite food.
                     </p>
 
-
-                    {/* =================================================
-                        SEARCH
-                    ================================================= */}
+                    {/* SEARCH */}
 
                     <div className="restaurant-search">
 
@@ -558,9 +516,7 @@ function Home() {
 
                         <input
                             type="text"
-                            placeholder={
-                                "Search restaurants or cuisines..."
-                            }
+                            placeholder="Search restaurants or cuisines..."
                             value={search}
                             onChange={(event) =>
                                 setSearch(
@@ -590,9 +546,7 @@ function Home() {
             </section>
 
 
-            {/* =================================================
-                RESTAURANTS
-            ================================================= */}
+            {/* RESTAURANTS */}
 
             <section className="restaurants-section">
 
@@ -612,12 +566,9 @@ function Home() {
 
                     </div>
 
-
                     <div className="restaurant-count">
 
-                        {
-                            filteredRestaurants.length
-                        }{" "}
+                        {filteredRestaurants.length}{" "}
 
                         {
                             filteredRestaurants.length === 1
@@ -630,9 +581,7 @@ function Home() {
                 </div>
 
 
-                {/* =================================================
-                    ERROR
-                ================================================= */}
+                {/* ERROR */}
 
                 {error && (
 
@@ -652,9 +601,7 @@ function Home() {
 
                         <button
                             type="button"
-                            onClick={
-                                handleRetry
-                            }
+                            onClick={handleRetry}
                         >
                             Try Again
                         </button>
@@ -663,9 +610,7 @@ function Home() {
                 )}
 
 
-                {/* =================================================
-                    NO RESTAURANTS
-                ================================================= */}
+                {/* NO RESTAURANTS */}
 
                 {!error &&
                     filteredRestaurants.length === 0 && (
@@ -703,9 +648,7 @@ function Home() {
                     )}
 
 
-                {/* =================================================
-                    RESTAURANT GRID
-                ================================================= */}
+                {/* RESTAURANT GRID */}
 
                 {!error &&
                     filteredRestaurants.length > 0 && (
@@ -723,8 +666,7 @@ function Home() {
                                     return (
 
                                         <article
-                                            className=
-                                                "restaurant-card"
+                                            className="restaurant-card"
                                             key={
                                                 getRestaurantId(
                                                     restaurant
@@ -732,13 +674,9 @@ function Home() {
                                             }
                                         >
 
-                                            {/* =================================================
-                                                IMAGE
-                                            ================================================= */}
+                                            {/* IMAGE */}
 
-                                            <div className=
-                                                "restaurant-image-wrapper"
-                                            >
+                                            <div className="restaurant-image-wrapper">
 
                                                 <img
                                                     src={
@@ -755,21 +693,15 @@ function Home() {
                                                             ? "restaurant-image"
                                                             : "restaurant-image closed-image"
                                                     }
-                                                    onError={(
-                                                        event
-                                                    ) => {
+                                                    onError={(event) => {
 
                                                         event.currentTarget.src =
                                                             "https://images.unsplash.com/" +
                                                             "photo-1517248135467-4c7edcad34c4" +
                                                             "?auto=format&fit=crop&w=900&q=80";
+
                                                     }}
                                                 />
-
-
-                                                {/* =================================================
-                                                    OPEN / CLOSED
-                                                ================================================= */}
 
                                                 <div
                                                     className={
@@ -779,9 +711,7 @@ function Home() {
                                                     }
                                                 >
 
-                                                    <span className=
-                                                        "status-circle"
-                                                    />
+                                                    <span className="status-circle" />
 
                                                     {
                                                         isOpen
@@ -794,17 +724,11 @@ function Home() {
                                             </div>
 
 
-                                            {/* =================================================
-                                                CARD BODY
-                                            ================================================= */}
+                                            {/* CARD BODY */}
 
-                                            <div className=
-                                                "restaurant-card-body"
-                                            >
+                                            <div className="restaurant-card-body">
 
-                                                <div className=
-                                                    "restaurant-name-row"
-                                                >
+                                                <div className="restaurant-name-row">
 
                                                     <h3>
                                                         {
@@ -813,9 +737,7 @@ function Home() {
                                                         }
                                                     </h3>
 
-                                                    <div className=
-                                                        "rating"
-                                                    >
+                                                    <div className="rating">
                                                         ★{" "}
                                                         {
                                                             getRating(
@@ -827,36 +749,29 @@ function Home() {
                                                 </div>
 
 
-                                                {/* DESCRIPTION */}
+                                                <p className="restaurant-description">
 
-                                                <p className=
-                                                    "restaurant-description"
-                                                >
                                                     {
                                                         restaurant.description ||
                                                         "Delicious food and great service."
                                                     }
+
                                                 </p>
 
 
-                                                {/* ADDRESS */}
+                                                <div className="restaurant-address">
 
-                                                <div className=
-                                                    "restaurant-address"
-                                                >
                                                     📍{" "}
+
                                                     {
                                                         restaurant.address ||
                                                         "Address not available"
                                                     }
+
                                                 </div>
 
 
-                                                {/* TIME */}
-
-                                                <div className=
-                                                    "restaurant-time-row"
-                                                >
+                                                <div className="restaurant-time-row">
 
                                                     <span>
 
@@ -878,7 +793,6 @@ function Home() {
 
                                                     </span>
 
-
                                                     <span
                                                         className={
                                                             isOpen
@@ -896,18 +810,11 @@ function Home() {
                                                 </div>
 
 
-                                                {/* =================================================
-                                                    BUTTONS
-                                                ================================================= */}
-
-                                                <div className=
-                                                    "restaurant-buttons"
-                                                >
+                                                <div className="restaurant-buttons">
 
                                                     <button
                                                         type="button"
-                                                        className=
-                                                            "view-details-button"
+                                                        className="view-details-button"
                                                         onClick={() =>
                                                             handleViewDetails(
                                                                 restaurant
@@ -917,11 +824,9 @@ function Home() {
                                                         View Details
                                                     </button>
 
-
                                                     <button
                                                         type="button"
-                                                        className=
-                                                            "view-menu-button"
+                                                        className="view-menu-button"
                                                         onClick={() =>
                                                             handleViewMenu(
                                                                 restaurant

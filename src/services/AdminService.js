@@ -1,65 +1,110 @@
 import axios from "axios";
 
-const API = axios.create({
-    baseURL: "http://localhost:8080/api"
+// =========================================================
+// PRODUCTION BACKEND
+// =========================================================
+
+const API_BASE_URL =
+    "https://bpr-backend-production-3381.up.railway.app/api";
+
+// =========================================================
+// AXIOS INSTANCE
+// =========================================================
+
+const AdminService = axios.create({
+
+    baseURL: API_BASE_URL,
+
+    headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+    }
+
 });
 
-API.interceptors.request.use(
+
+// =========================================================
+// JWT INTERCEPTOR
+// =========================================================
+
+AdminService.interceptors.request.use(
+
     (config) => {
 
-        const token = localStorage.getItem("token");
+        const token =
+            localStorage.getItem("token") ||
+            localStorage.getItem("jwtToken") ||
+            localStorage.getItem("accessToken");
 
         if (token) {
 
+            config.headers =
+                config.headers || {};
+
             config.headers.Authorization =
                 `Bearer ${token}`;
-
         }
 
         return config;
-
     },
+
     (error) => {
 
         return Promise.reject(error);
-
     }
+
 );
 
-const AdminService = {
 
-    getDashboard: () => {
-        return API.get("/admin/dashboard");
+// =========================================================
+// RESPONSE INTERCEPTOR
+// =========================================================
+
+AdminService.interceptors.response.use(
+
+    (response) => {
+
+        return response;
     },
 
-    getUsers: () => {
-        return API.get("/admin/users");
-    },
+    (error) => {
 
-    getRestaurants: () => {
-        return API.get("/admin/restaurants");
-    },
+        console.error(
+            "Admin API Error:",
+            error.response?.status,
+            error.response?.data ||
+            error.message
+        );
 
-    getFoods: () => {
-        return API.get("/admin/foods");
-    },
+        if (
+            error.response?.status === 401
+        ) {
 
-    getOrders: () => {
-        return API.get("/admin/orders");
-    },
+            localStorage.removeItem(
+                "token"
+            );
 
-    getPendingOwners: () => {
-        return API.get("/admin/owners/pending");
-    },
+            localStorage.removeItem(
+                "jwtToken"
+            );
 
-    approveOwner: (id) => {
-        return API.put(`/admin/owners/${id}/approve`);
-    },
+            localStorage.removeItem(
+                "accessToken"
+            );
 
-    rejectOwner: (id) => {
-        return API.delete(`/admin/owners/${id}/reject`);
+            localStorage.removeItem(
+                "user"
+            );
+
+            localStorage.removeItem(
+                "role"
+            );
+        }
+
+        return Promise.reject(error);
     }
 
-};
+);
+
 
 export default AdminService;

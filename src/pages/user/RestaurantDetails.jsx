@@ -14,15 +14,18 @@ import API, {
 
 import "./RestaurantDetails.css";
 
+// =========================================================
+// PRODUCTION BACKEND
+// =========================================================
+
+const BACKEND_URL =
+    "https://bpr-backend-production-3381.up.railway.app";
+
 
 function RestaurantDetails() {
 
     const { id } = useParams();
     const navigate = useNavigate();
-
-    // =========================================================
-    // STATE
-    // =========================================================
 
     const [restaurant, setRestaurant] =
         useState(null);
@@ -51,10 +54,6 @@ function RestaurantDetails() {
     const [searchFood, setSearchFood] =
         useState("");
 
-    // =========================================================
-    // REVIEW FORM
-    // =========================================================
-
     const [rating, setRating] =
         useState(5);
 
@@ -67,8 +66,9 @@ function RestaurantDetails() {
     const [reviewMessage, setReviewMessage] =
         useState("");
 
+
     // =========================================================
-    // LOAD EVERYTHING
+    // LOAD
     // =========================================================
 
     useEffect(() => {
@@ -83,8 +83,9 @@ function RestaurantDetails() {
 
     }, [id]);
 
+
     // =========================================================
-    // LOAD RESTAURANT
+    // RESTAURANT
     // =========================================================
 
     const loadRestaurant = async () => {
@@ -122,8 +123,9 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
-    // LOAD FOODS
+    // FOODS
     // =========================================================
 
     const loadFoods = async () => {
@@ -159,8 +161,9 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
-    // LOAD REVIEWS
+    // REVIEWS
     // =========================================================
 
     const loadReviews = async () => {
@@ -170,18 +173,14 @@ function RestaurantDetails() {
             setReviewLoading(true);
 
             const response =
-                await reviewApi
-                    .getRestaurantReviews(id);
+                await reviewApi.getRestaurantReviews(
+                    id
+                );
 
             const data =
                 Array.isArray(response.data)
                     ? response.data
                     : [];
-
-            console.log(
-                "RESTAURANT REVIEWS:",
-                data
-            );
 
             setReviews(data);
 
@@ -200,8 +199,9 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
-    // RESTAURANT OPEN STATUS
+    // OPEN STATUS
     // =========================================================
 
     const isRestaurantOpen = () => {
@@ -219,8 +219,7 @@ function RestaurantDetails() {
 
         try {
 
-            const now =
-                new Date();
+            const now = new Date();
 
             const currentMinutes =
                 now.getHours() * 60 +
@@ -244,26 +243,20 @@ function RestaurantDetails() {
                 closingParts[0] * 60 +
                 closingParts[1];
 
-            // Same day
             if (
                 openingMinutes <=
                 closingMinutes
             ) {
 
                 return (
-                    currentMinutes >=
-                    openingMinutes &&
-                    currentMinutes <=
-                    closingMinutes
+                    currentMinutes >= openingMinutes &&
+                    currentMinutes < closingMinutes
                 );
             }
 
-            // Overnight restaurant
             return (
-                currentMinutes >=
-                openingMinutes ||
-                currentMinutes <=
-                closingMinutes
+                currentMinutes >= openingMinutes ||
+                currentMinutes < closingMinutes
             );
 
         } catch (err) {
@@ -277,8 +270,9 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
-    // FOOD CATEGORIES
+    // CATEGORIES
     // =========================================================
 
     const categories = [
@@ -286,15 +280,16 @@ function RestaurantDetails() {
         ...new Set(
             foods
                 .map(
-                    (food) =>
+                    food =>
                         food.category
                 )
                 .filter(Boolean)
         )
     ];
 
+
     // =========================================================
-    // FILTER FOODS
+    // FILTER
     // =========================================================
 
     const filteredFoods =
@@ -324,34 +319,38 @@ function RestaurantDetails() {
             );
         });
 
+
     // =========================================================
     // FOOD IMAGE
     // =========================================================
 
     const getFoodImage = (food) => {
 
+        const defaultImage =
+            "https://images.unsplash.com/" +
+            "photo-1546069901-ba9599a7e63c";
+
         const image =
             food?.image;
 
         if (!image) {
-
-            return (
-                "https://images.unsplash.com/" +
-                "photo-1546069901-ba9599a7e63c"
-            );
+            return defaultImage;
         }
 
         if (
-            image.startsWith("http")
+            image.startsWith("http://") ||
+            image.startsWith("https://")
         ) {
-
             return image;
         }
 
-        return (
-            `http://localhost:8080${image}`
-        );
+        if (image.startsWith("/")) {
+            return `${BACKEND_URL}${image}`;
+        }
+
+        return `${BACKEND_URL}/${image}`;
     };
+
 
     // =========================================================
     // RESTAURANT IMAGE
@@ -359,38 +358,37 @@ function RestaurantDetails() {
 
     const getRestaurantImage = () => {
 
-        if (!restaurant?.image) {
+        const defaultImage =
+            "https://images.unsplash.com/" +
+            "photo-1517248135467-4c7edcad34c4";
 
-            return (
-                "https://images.unsplash.com/" +
-                "photo-1517248135467-4c7edcad34c4"
-            );
+        if (!restaurant?.image) {
+            return defaultImage;
         }
 
         if (
-            restaurant.image.startsWith(
-                "http"
-            )
+            restaurant.image.startsWith("http://") ||
+            restaurant.image.startsWith("https://")
         ) {
-
             return restaurant.image;
         }
 
-        return (
-            `http://localhost:8080${restaurant.image}`
-        );
+        if (restaurant.image.startsWith("/")) {
+            return `${BACKEND_URL}${restaurant.image}`;
+        }
+
+        return `${BACKEND_URL}/${restaurant.image}`;
     };
 
+
     // =========================================================
-    // ADD TO CART
+    // ADD CART
     // =========================================================
 
     const addToCart = async (food) => {
 
         const token =
-            localStorage.getItem(
-                "token"
-            );
+            localStorage.getItem("token");
 
         if (!token) {
 
@@ -434,6 +432,7 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
     // SUBMIT REVIEW
     // =========================================================
@@ -443,13 +442,7 @@ function RestaurantDetails() {
         event.preventDefault();
 
         const token =
-            localStorage.getItem(
-                "token"
-            );
-
-        // -----------------------------------------------------
-        // LOGIN CHECK
-        // -----------------------------------------------------
+            localStorage.getItem("token");
 
         if (!token) {
 
@@ -461,10 +454,6 @@ function RestaurantDetails() {
 
             return;
         }
-
-        // -----------------------------------------------------
-        // RATING VALIDATION
-        // -----------------------------------------------------
 
         if (
             !rating ||
@@ -479,13 +468,7 @@ function RestaurantDetails() {
             return;
         }
 
-        // -----------------------------------------------------
-        // COMMENT VALIDATION
-        // -----------------------------------------------------
-
-        if (
-            !comment.trim()
-        ) {
+        if (!comment.trim()) {
 
             setReviewMessage(
                 "Please write a review."
@@ -499,32 +482,18 @@ function RestaurantDetails() {
             setReviewSubmitting(true);
             setReviewMessage("");
 
-            // -------------------------------------------------
-            // API
-            // -------------------------------------------------
+            await reviewApi.addReview({
 
-            const response =
-                await reviewApi.addReview(
-                    {
-                        restaurantId:
-                            Number(id),
+                restaurantId:
+                    Number(id),
 
-                        rating:
-                            Number(rating),
+                rating:
+                    Number(rating),
 
-                        comment:
-                            comment.trim()
-                    }
-                );
+                comment:
+                    comment.trim()
 
-            console.log(
-                "REVIEW CREATED:",
-                response.data
-            );
-
-            // -------------------------------------------------
-            // RESET FORM
-            // -------------------------------------------------
+            });
 
             setComment("");
             setRating(5);
@@ -533,16 +502,7 @@ function RestaurantDetails() {
                 "Review submitted successfully!"
             );
 
-            // -------------------------------------------------
-            // REFRESH REVIEWS
-            // -------------------------------------------------
-
             await loadReviews();
-
-            // -------------------------------------------------
-            // REFRESH RESTAURANT RATING
-            // -------------------------------------------------
-
             await loadRestaurant();
 
         } catch (err) {
@@ -557,8 +517,7 @@ function RestaurantDetails() {
                 err?.response?.data;
 
             setReviewMessage(
-                typeof backendMessage ===
-                    "string"
+                typeof backendMessage === "string"
                     ? backendMessage
                     : "Failed to submit review."
             );
@@ -569,27 +528,25 @@ function RestaurantDetails() {
         }
     };
 
+
     // =========================================================
-    // DISPLAY STARS
+    // STARS
     // =========================================================
 
-    const renderStars = (
-        value
-    ) => {
+    const renderStars = (value) => {
 
         const numericValue =
             Number(value || 0);
 
         const rounded =
-            Math.round(
-                numericValue
-            );
+            Math.round(numericValue);
 
         return (
+
             <div className="rating-stars">
 
                 {[1, 2, 3, 4, 5].map(
-                    (star) => (
+                    star => (
 
                         <span
                             key={star}
@@ -608,8 +565,9 @@ function RestaurantDetails() {
         );
     };
 
+
     // =========================================================
-    // REVIEW USER NAME
+    // REVIEW NAME
     // =========================================================
 
     const getReviewUserName =
@@ -626,6 +584,7 @@ function RestaurantDetails() {
             );
         };
 
+
     // =========================================================
     // REVIEW DATE
     // =========================================================
@@ -633,10 +592,7 @@ function RestaurantDetails() {
     const getReviewDate =
         (review) => {
 
-            if (
-                !review?.createdAt
-            ) {
-
+            if (!review?.createdAt) {
                 return "";
             }
 
@@ -653,11 +609,11 @@ function RestaurantDetails() {
                     }
                 );
 
-            } catch (err) {
-
+            } catch {
                 return "";
             }
         };
+
 
     // =========================================================
     // REVIEW COMMENT
@@ -674,6 +630,7 @@ function RestaurantDetails() {
             );
         };
 
+
     // =========================================================
     // LOADING
     // =========================================================
@@ -681,15 +638,10 @@ function RestaurantDetails() {
     if (loading) {
 
         return (
-            <div
-                className=
-                    "restaurant-details-loading"
-            >
 
-                <div
-                    className=
-                        "loading-spinner"
-                />
+            <div className="restaurant-details-loading">
+
+                <div className="loading-spinner" />
 
                 <p>
                     Loading restaurant...
@@ -698,6 +650,7 @@ function RestaurantDetails() {
             </div>
         );
     }
+
 
     // =========================================================
     // ERROR
@@ -709,10 +662,8 @@ function RestaurantDetails() {
     ) {
 
         return (
-            <div
-                className=
-                    "restaurant-details-error"
-            >
+
+            <div className="restaurant-details-error">
 
                 <h2>
                     Restaurant Not Found
@@ -736,30 +687,20 @@ function RestaurantDetails() {
         );
     }
 
+
     // =========================================================
     // MAIN UI
     // =========================================================
 
     return (
 
-        <div
-            className=
-                "restaurant-details-page"
-        >
+        <div className="restaurant-details-page">
 
-            {/* =================================================
-                BACK
-            ================================================= */}
-
-            <div
-                className=
-                    "restaurant-top-bar"
-            >
+            <div className="restaurant-top-bar">
 
                 <button
                     type="button"
-                    className=
-                        "back-button"
+                    className="back-button"
                     onClick={() =>
                         navigate(-1)
                     }
@@ -770,35 +711,25 @@ function RestaurantDetails() {
             </div>
 
 
-            {/* =================================================
-                RESTAURANT HERO
-            ================================================= */}
+            {/* RESTAURANT HERO */}
 
-            <section
-                className=
-                    "restaurant-hero"
-            >
+            <section className="restaurant-hero">
 
-                <div
-                    className=
-                        "restaurant-image-wrapper"
-                >
+                <div className="restaurant-image-wrapper">
 
                     <img
-                        src={
-                            getRestaurantImage()
-                        }
+                        src={getRestaurantImage()}
                         alt={
                             restaurant.restaurantName ||
                             "Restaurant"
                         }
-                        className=
-                            "restaurant-main-image"
+                        className="restaurant-main-image"
                         onError={(event) => {
 
                             event.currentTarget.src =
                                 "https://images.unsplash.com/" +
                                 "photo-1517248135467-4c7edcad34c4";
+
                         }}
                     />
 
@@ -809,20 +740,17 @@ function RestaurantDetails() {
                                 : "restaurant-status closed"
                         }
                     >
-
-                        {isRestaurantOpen()
-                            ? "OPEN"
-                            : "CLOSED"}
-
+                        {
+                            isRestaurantOpen()
+                                ? "OPEN"
+                                : "CLOSED"
+                        }
                     </div>
 
                 </div>
 
 
-                <div
-                    className=
-                        "restaurant-hero-info"
-                >
+                <div className="restaurant-hero-info">
 
                     <h1>
                         {
@@ -832,12 +760,7 @@ function RestaurantDetails() {
                     </h1>
 
 
-                    {/* RATING */}
-
-                    <div
-                        className=
-                            "restaurant-rating-row"
-                    >
+                    <div className="restaurant-rating-row">
 
                         {renderStars(
                             restaurant.rating
@@ -845,61 +768,45 @@ function RestaurantDetails() {
 
                         <strong>
                             {Number(
-                                restaurant.rating ||
-                                0
+                                restaurant.rating || 0
                             ).toFixed(1)}
                         </strong>
 
                         <span>
                             (
-                            {reviews.length}
-                            {" "}
-                            {reviews.length === 1
-                                ? "review"
-                                : "reviews"}
+                            {reviews.length}{" "}
+                            {
+                                reviews.length === 1
+                                    ? "review"
+                                    : "reviews"
+                            }
                             )
                         </span>
 
                     </div>
 
 
-                    {/* DESCRIPTION */}
-
                     {restaurant.description && (
 
-                        <p
-                            className=
-                                "restaurant-description"
-                        >
+                        <p className="restaurant-description">
                             {
                                 restaurant.description
                             }
                         </p>
+
                     )}
 
 
-                    {/* INFORMATION */}
-
-                    <div
-                        className=
-                            "restaurant-info-list"
-                    >
+                    <div className="restaurant-info-list">
 
                         {restaurant.address && (
 
-                            <div
-                                className=
-                                    "restaurant-info-item"
-                            >
+                            <div className="restaurant-info-item">
+
+                                <span>📍</span>
 
                                 <span>
-                                    📍
-                                </span>
-
-                                <span>
-                                    {
-                                        restaurant.address
-                                    }
+                                    {restaurant.address}
                                 </span>
 
                             </div>
@@ -908,19 +815,12 @@ function RestaurantDetails() {
 
                         {restaurant.phone && (
 
-                            <div
-                                className=
-                                    "restaurant-info-item"
-                            >
+                            <div className="restaurant-info-item">
+
+                                <span>📞</span>
 
                                 <span>
-                                    📞
-                                </span>
-
-                                <span>
-                                    {
-                                        restaurant.phone
-                                    }
+                                    {restaurant.phone}
                                 </span>
 
                             </div>
@@ -932,14 +832,9 @@ function RestaurantDetails() {
                             restaurant.closingTime
                         ) && (
 
-                            <div
-                                className=
-                                    "restaurant-info-item"
-                            >
+                            <div className="restaurant-info-item">
 
-                                <span>
-                                    🕐
-                                </span>
+                                <span>🕐</span>
 
                                 <span>
 
@@ -967,19 +862,11 @@ function RestaurantDetails() {
             </section>
 
 
-            {/* =================================================
-                MENU
-            ================================================= */}
+            {/* MENU */}
 
-            <section
-                className=
-                    "restaurant-menu-section"
-            >
+            <section className="restaurant-menu-section">
 
-                <div
-                    className=
-                        "section-header"
-                >
+                <div className="section-header">
 
                     <div>
 
@@ -993,44 +880,32 @@ function RestaurantDetails() {
 
                     </div>
 
-
                     <input
                         type="text"
-                        placeholder=
-                            "Search food..."
-                        value={
-                            searchFood
-                        }
+                        placeholder="Search food..."
+                        value={searchFood}
                         onChange={(event) =>
                             setSearchFood(
                                 event.target.value
                             )
                         }
-                        className=
-                            "food-search"
+                        className="food-search"
                     />
 
                 </div>
 
 
-                {/* CATEGORIES */}
-
-                <div
-                    className=
-                        "food-categories"
-                >
+                <div className="food-categories">
 
                     {categories.map(
-                        (category) => (
+                        category => (
 
                             <button
                                 type="button"
-                                key={
-                                    category
-                                }
+                                key={category}
                                 className={
                                     selectedCategory ===
-                                        category
+                                    category
                                         ? "category-button active"
                                         : "category-button"
                                 }
@@ -1040,9 +915,7 @@ function RestaurantDetails() {
                                     )
                                 }
                             >
-                                {
-                                    category
-                                }
+                                {category}
                             </button>
                         )
                     )}
@@ -1050,19 +923,11 @@ function RestaurantDetails() {
                 </div>
 
 
-                {/* FOOD LOADING */}
-
                 {foodLoading ? (
 
-                    <div
-                        className=
-                            "foods-loading"
-                    >
+                    <div className="foods-loading">
 
-                        <div
-                            className=
-                                "loading-spinner"
-                        />
+                        <div className="loading-spinner" />
 
                         <p>
                             Loading menu...
@@ -1072,15 +937,9 @@ function RestaurantDetails() {
 
                 ) : filteredFoods.length === 0 ? (
 
-                    <div
-                        className=
-                            "no-reviews"
-                    >
+                    <div className="no-reviews">
 
-                        <div
-                            className=
-                                "no-review-icon"
-                        >
+                        <div className="no-review-icon">
                             🍽️
                         </div>
 
@@ -1097,13 +956,10 @@ function RestaurantDetails() {
 
                 ) : (
 
-                    <div
-                        className=
-                            "food-grid"
-                    >
+                    <div className="food-grid">
 
                         {filteredFoods.map(
-                            (food) => {
+                            food => {
 
                                 const foodName =
                                     food.foodName ||
@@ -1112,24 +968,17 @@ function RestaurantDetails() {
 
                                 const price =
                                     Number(
-                                        food.price ||
-                                        0
+                                        food.price || 0
                                     );
 
                                 return (
 
                                     <div
-                                        className=
-                                            "food-card"
-                                        key={
-                                            food.id
-                                        }
+                                        className="food-card"
+                                        key={food.id}
                                     >
 
-                                        <div
-                                            className=
-                                                "food-image-container"
-                                        >
+                                        <div className="food-image-container">
 
                                             <img
                                                 src={
@@ -1137,82 +986,60 @@ function RestaurantDetails() {
                                                         food
                                                     )
                                                 }
-                                                alt={
-                                                    foodName
-                                                }
-                                                className=
-                                                    "food-image"
-                                                onError={(
-                                                    event
-                                                ) => {
+                                                alt={foodName}
+                                                className="food-image"
+                                                onError={(event) => {
 
                                                     event.currentTarget.src =
                                                         "https://images.unsplash.com/" +
                                                         "photo-1546069901-ba9599a7e63c";
+
                                                 }}
                                             />
 
                                             {food.category && (
 
-                                                <span
-                                                    className=
-                                                        "food-category-badge"
-                                                >
+                                                <span className="food-category-badge">
                                                     {
                                                         food.category
                                                     }
                                                 </span>
+
                                             )}
 
                                         </div>
 
 
-                                        <div
-                                            className=
-                                                "food-content"
-                                        >
+                                        <div className="food-content">
 
                                             <h3>
-                                                {
-                                                    foodName
-                                                }
+                                                {foodName}
                                             </h3>
 
 
                                             {food.description && (
 
-                                                <p
-                                                    className=
-                                                        "food-description"
-                                                >
+                                                <p className="food-description">
                                                     {
                                                         food.description
                                                     }
                                                 </p>
+
                                             )}
 
 
-                                            <div
-                                                className=
-                                                    "food-bottom"
-                                            >
+                                            <div className="food-bottom">
 
-                                                <strong
-                                                    className=
-                                                        "food-price"
-                                                >
+                                                <strong className="food-price">
                                                     ₹
                                                     {
-                                                        price.toFixed(
-                                                            2
-                                                        )
+                                                        price.toFixed(2)
                                                     }
                                                 </strong>
 
                                                 <button
                                                     type="button"
-                                                    className=
-                                                        "add-cart-button"
+                                                    className="add-cart-button"
                                                     onClick={() =>
                                                         addToCart(
                                                             food
@@ -1237,19 +1064,11 @@ function RestaurantDetails() {
             </section>
 
 
-            {/* =================================================
-                REVIEWS
-            ================================================= */}
+            {/* REVIEWS */}
 
-            <section
-                className=
-                    "reviews-section"
-            >
+            <section className="reviews-section">
 
-                <div
-                    className=
-                        "section-header"
-                >
+                <div className="section-header">
 
                     <div>
 
@@ -1267,35 +1086,20 @@ function RestaurantDetails() {
                 </div>
 
 
-                {/* =================================================
-                    WRITE REVIEW
-                ================================================= */}
+                {/* REVIEW FORM */}
 
-                <div
-                    className=
-                        "review-form-card"
-                >
+                <div className="review-form-card">
 
                     <h3>
                         Rate this restaurant
                     </h3>
 
+                    <form onSubmit={submitReview}>
 
-                    <form
-                        onSubmit={
-                            submitReview
-                        }
-                    >
-
-                        {/* STARS */}
-
-                        <div
-                            className=
-                                "rating-selector"
-                        >
+                        <div className="rating-selector">
 
                             {[1, 2, 3, 4, 5].map(
-                                (star) => (
+                                star => (
 
                                     <button
                                         type="button"
@@ -1306,9 +1110,7 @@ function RestaurantDetails() {
                                                 : "select-star"
                                         }
                                         onClick={() =>
-                                            setRating(
-                                                star
-                                            )
+                                            setRating(star)
                                         }
                                         aria-label={
                                             `${star} star rating`
@@ -1322,53 +1124,39 @@ function RestaurantDetails() {
                         </div>
 
 
-                        {/* COMMENT */}
-
                         <textarea
-                            value={
-                                comment
-                            }
+                            value={comment}
                             onChange={(event) =>
                                 setComment(
                                     event.target.value
                                 )
                             }
-                            placeholder=
-                                "Write your review..."
+                            placeholder="Write your review..."
                             maxLength={1000}
                         />
 
 
-                        {/* SUBMIT */}
-
                         <button
                             type="submit"
-                            className=
-                                "submit-review-button"
+                            className="submit-review-button"
                             disabled={
                                 reviewSubmitting
                             }
                         >
-
-                            {reviewSubmitting
-                                ? "Submitting..."
-                                : "Submit Review"}
-
+                            {
+                                reviewSubmitting
+                                    ? "Submitting..."
+                                    : "Submit Review"
+                            }
                         </button>
 
 
-                        {/* MESSAGE */}
-
                         {reviewMessage && (
 
-                            <p
-                                className=
-                                    "review-message"
-                            >
-                                {
-                                    reviewMessage
-                                }
+                            <p className="review-message">
+                                {reviewMessage}
                             </p>
+
                         )}
 
                     </form>
@@ -1376,30 +1164,19 @@ function RestaurantDetails() {
                 </div>
 
 
-                {/* =================================================
-                    REVIEW LOADING
-                ================================================= */}
+                {/* REVIEWS */}
 
                 {reviewLoading ? (
 
-                    <div
-                        className=
-                            "reviews-loading"
-                    >
+                    <div className="reviews-loading">
                         Loading reviews...
                     </div>
 
                 ) : reviews.length === 0 ? (
 
-                    <div
-                        className=
-                            "no-reviews"
-                    >
+                    <div className="no-reviews">
 
-                        <div
-                            className=
-                                "no-review-icon"
-                        >
+                        <div className="no-review-icon">
                             ★
                         </div>
 
@@ -1416,13 +1193,10 @@ function RestaurantDetails() {
 
                 ) : (
 
-                    <div
-                        className=
-                            "reviews-list"
-                    >
+                    <div className="reviews-list">
 
                         {reviews.map(
-                            (review) => {
+                            review => {
 
                                 const userName =
                                     getReviewUserName(
@@ -1437,47 +1211,28 @@ function RestaurantDetails() {
                                 return (
 
                                     <div
-                                        className=
-                                            "review-card"
-                                        key={
-                                            review.id
-                                        }
+                                        className="review-card"
+                                        key={review.id}
                                     >
 
-                                        {/* REVIEW HEADER */}
+                                        <div className="review-header">
 
-                                        <div
-                                            className=
-                                                "review-header"
-                                        >
+                                            <div className="review-user">
 
-                                            <div
-                                                className=
-                                                    "review-user"
-                                            >
-
-                                                <div
-                                                    className=
-                                                        "review-avatar"
-                                                >
+                                                <div className="review-avatar">
 
                                                     {
                                                         userName
-                                                            .charAt(
-                                                                0
-                                                            )
+                                                            .charAt(0)
                                                             .toUpperCase()
                                                     }
 
                                                 </div>
 
-
                                                 <div>
 
                                                     <h4>
-                                                        {
-                                                            userName
-                                                        }
+                                                        {userName}
                                                     </h4>
 
                                                     <span>
@@ -1493,12 +1248,7 @@ function RestaurantDetails() {
                                             </div>
 
 
-                                            {/* REVIEW RATING */}
-
-                                            <div
-                                                className=
-                                                    "review-rating"
-                                            >
+                                            <div className="review-rating">
 
                                                 {renderStars(
                                                     review.rating
@@ -1519,14 +1269,9 @@ function RestaurantDetails() {
                                         </div>
 
 
-                                        {/* COMMENT */}
-
                                         {reviewComment && (
 
-                                            <p
-                                                className=
-                                                    "review-comment"
-                                            >
+                                            <p className="review-comment">
                                                 {
                                                     reviewComment
                                                 }

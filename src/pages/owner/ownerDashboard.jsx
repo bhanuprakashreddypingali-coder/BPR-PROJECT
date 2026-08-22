@@ -1,21 +1,52 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, {
+    useEffect,
+    useState
+} from "react";
+
+import {
+    useNavigate
+} from "react-router-dom";
+
 import API from "../../services/ApiService";
+
 import "./OwnerDashboard.css";
+
+// =========================================================
+// PRODUCTION BACKEND
+// =========================================================
+
+const BACKEND_URL =
+    "https://bpr-backend-production-3381.up.railway.app";
+
 
 function OwnerDashboard() {
 
     const navigate = useNavigate();
 
-    const [dashboard, setDashboard] = useState(null);
-    const [restaurant, setRestaurant] = useState(null);
-    const [orders, setOrders] = useState([]);
-    const [reviews, setReviews] = useState([]);
+    const [dashboard, setDashboard] =
+        useState(null);
 
-    const [loading, setLoading] = useState(true);
-    const [reviewsLoading, setReviewsLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [reviewError, setReviewError] = useState("");
+    const [restaurant, setRestaurant] =
+        useState(null);
+
+    const [orders, setOrders] =
+        useState([]);
+
+    const [reviews, setReviews] =
+        useState([]);
+
+    const [loading, setLoading] =
+        useState(true);
+
+    const [reviewsLoading, setReviewsLoading] =
+        useState(false);
+
+    const [error, setError] =
+        useState("");
+
+    const [reviewError, setReviewError] =
+        useState("");
+
 
     // =========================================================
     // LOAD DASHBOARD
@@ -24,6 +55,7 @@ function OwnerDashboard() {
     useEffect(() => {
         loadDashboard();
     }, []);
+
 
     // =========================================================
     // LOAD OWNER DATA
@@ -42,18 +74,27 @@ function OwnerDashboard() {
                 ordersResponse
             ] = await Promise.allSettled([
 
-                API.get("/owner/dashboard"),
+                API.get(
+                    "/owner/dashboard"
+                ),
 
-                API.get("/owner/restaurant"),
+                API.get(
+                    "/owner/restaurant"
+                ),
 
-                API.get("/owner/orders")
+                API.get(
+                    "/owner/orders"
+                )
+
             ]);
 
-            // -------------------------------------------------
-            // DASHBOARD
-            // -------------------------------------------------
 
-            if (dashboardResponse.status === "fulfilled") {
+            // DASHBOARD
+
+            if (
+                dashboardResponse.status ===
+                "fulfilled"
+            ) {
 
                 setDashboard(
                     dashboardResponse.value.data
@@ -69,18 +110,22 @@ function OwnerDashboard() {
                 setDashboard(null);
             }
 
-            // -------------------------------------------------
+
             // RESTAURANT
-            // -------------------------------------------------
 
             let restaurantData = null;
 
-            if (restaurantResponse.status === "fulfilled") {
+            if (
+                restaurantResponse.status ===
+                "fulfilled"
+            ) {
 
                 restaurantData =
                     restaurantResponse.value.data;
 
-                setRestaurant(restaurantData);
+                setRestaurant(
+                    restaurantData
+                );
 
             } else {
 
@@ -92,11 +137,13 @@ function OwnerDashboard() {
                 setRestaurant(null);
             }
 
-            // -------------------------------------------------
-            // ORDERS
-            // -------------------------------------------------
 
-            if (ordersResponse.status === "fulfilled") {
+            // ORDERS
+
+            if (
+                ordersResponse.status ===
+                "fulfilled"
+            ) {
 
                 const orderData =
                     Array.isArray(
@@ -105,7 +152,9 @@ function OwnerDashboard() {
                         ? ordersResponse.value.data
                         : [];
 
-                setOrders(orderData);
+                setOrders(
+                    orderData
+                );
 
             } else {
 
@@ -117,9 +166,8 @@ function OwnerDashboard() {
                 setOrders([]);
             }
 
-            // -------------------------------------------------
-            // LOAD REVIEWS
-            // -------------------------------------------------
+
+            // REVIEWS
 
             if (restaurantData?.id) {
 
@@ -150,11 +198,14 @@ function OwnerDashboard() {
         }
     };
 
+
     // =========================================================
-    // LOAD RESTAURANT REVIEWS
+    // LOAD REVIEWS
     // =========================================================
 
-    const loadReviews = async (restaurantId) => {
+    const loadReviews = async (
+        restaurantId
+    ) => {
 
         try {
 
@@ -171,7 +222,9 @@ function OwnerDashboard() {
                     ? response.data
                     : [];
 
-            setReviews(reviewData);
+            setReviews(
+                reviewData
+            );
 
         } catch (err) {
 
@@ -193,29 +246,38 @@ function OwnerDashboard() {
         }
     };
 
+
     // =========================================================
     // RESTAURANT IMAGE
     // =========================================================
 
     const getRestaurantImage = () => {
 
-        if (!restaurant?.image) {
+        const defaultImage =
+            "https://images.unsplash.com/" +
+            "photo-1517248135467-4c7edcad34c4";
 
-            return "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4";
+        if (!restaurant?.image) {
+            return defaultImage;
         }
 
         if (
-            restaurant.image.startsWith("http")
+            restaurant.image.startsWith("http://") ||
+            restaurant.image.startsWith("https://")
         ) {
-
             return restaurant.image;
         }
 
-        return `http://localhost:8080${restaurant.image}`;
+        if (restaurant.image.startsWith("/")) {
+            return `${BACKEND_URL}${restaurant.image}`;
+        }
+
+        return `${BACKEND_URL}/${restaurant.image}`;
     };
 
+
     // =========================================================
-    // NUMBER FORMAT
+    // NUMBER
     // =========================================================
 
     const formatNumber = (value) => {
@@ -223,11 +285,14 @@ function OwnerDashboard() {
         const number =
             Number(value || 0);
 
-        return number.toLocaleString("en-IN");
+        return number.toLocaleString(
+            "en-IN"
+        );
     };
 
+
     // =========================================================
-    // CURRENCY FORMAT
+    // CURRENCY
     // =========================================================
 
     const formatCurrency = (value) => {
@@ -244,11 +309,14 @@ function OwnerDashboard() {
         )}`;
     };
 
+
     // =========================================================
-    // STATUS CLASS
+    // STATUS
     // =========================================================
 
-    const getStatusClass = (status) => {
+    const getStatusClass = (
+        status
+    ) => {
 
         if (!status) {
             return "pending";
@@ -256,14 +324,20 @@ function OwnerDashboard() {
 
         return status
             .toLowerCase()
-            .replaceAll("_", "-");
+            .replaceAll(
+                "_",
+                "-"
+            );
     };
+
 
     // =========================================================
     // REVIEW HELPERS
     // =========================================================
 
-    const getReviewCustomerName = (review) => {
+    const getReviewCustomerName = (
+        review
+    ) => {
 
         return (
             review.customerName ||
@@ -277,7 +351,10 @@ function OwnerDashboard() {
         );
     };
 
-    const getReviewCustomerPhone = (review) => {
+
+    const getReviewCustomerPhone = (
+        review
+    ) => {
 
         return (
             review.customerPhone ||
@@ -288,7 +365,10 @@ function OwnerDashboard() {
         );
     };
 
-    const getReviewRating = (review) => {
+
+    const getReviewRating = (
+        review
+    ) => {
 
         return Number(
             review.rating ||
@@ -297,7 +377,10 @@ function OwnerDashboard() {
         );
     };
 
-    const getReviewComment = (review) => {
+
+    const getReviewComment = (
+        review
+    ) => {
 
         return (
             review.comment ||
@@ -308,7 +391,10 @@ function OwnerDashboard() {
         );
     };
 
-    const getReviewFoodName = (review) => {
+
+    const getReviewFoodName = (
+        review
+    ) => {
 
         return (
             review.foodName ||
@@ -319,7 +405,10 @@ function OwnerDashboard() {
         );
     };
 
-    const getReviewDate = (review) => {
+
+    const getReviewDate = (
+        review
+    ) => {
 
         const date =
             review.createdAt ||
@@ -333,7 +422,11 @@ function OwnerDashboard() {
         const parsedDate =
             new Date(date);
 
-        if (Number.isNaN(parsedDate.getTime())) {
+        if (
+            Number.isNaN(
+                parsedDate.getTime()
+            )
+        ) {
             return "-";
         }
 
@@ -347,17 +440,25 @@ function OwnerDashboard() {
         );
     };
 
+
     // =========================================================
-    // REVIEW STARS
+    // STARS
     // =========================================================
 
-    const renderStars = (rating) => {
+    const renderStars = (
+        rating
+    ) => {
 
         const stars = [];
 
-        for (let i = 1; i <= 5; i++) {
+        for (
+            let i = 1;
+            i <= 5;
+            i++
+        ) {
 
             stars.push(
+
                 <span
                     key={i}
                     className={
@@ -368,11 +469,13 @@ function OwnerDashboard() {
                 >
                     ★
                 </span>
+
             );
         }
 
         return stars;
     };
+
 
     // =========================================================
     // RECENT REVIEWS
@@ -399,8 +502,13 @@ function OwnerDashboard() {
                     ).getTime();
 
                 return dateB - dateA;
+
             })
-            .slice(0, 5);
+            .slice(
+                0,
+                5
+            );
+
 
     // =========================================================
     // RECENT ORDERS
@@ -421,8 +529,13 @@ function OwnerDashboard() {
                     ).getTime();
 
                 return dateB - dateA;
+
             })
-            .slice(0, 5);
+            .slice(
+                0,
+                5
+            );
+
 
     // =========================================================
     // DASHBOARD VALUES
@@ -433,43 +546,58 @@ function OwnerDashboard() {
         orders.length ??
         0;
 
+
     const pendingOrders =
         dashboard?.pendingOrders ??
         orders.filter(
             order =>
-                String(order.status)
-                    .toUpperCase() === "PENDING"
+                String(
+                    order.status
+                ).toUpperCase() ===
+                "PENDING"
         ).length;
+
 
     const completedOrders =
         dashboard?.completedOrders ??
         orders.filter(
             order =>
-                String(order.status)
-                    .toUpperCase() === "DELIVERED"
+                String(
+                    order.status
+                ).toUpperCase() ===
+                "DELIVERED"
         ).length;
+
 
     const totalRevenue =
         dashboard?.totalRevenue ??
         orders
             .filter(
                 order =>
-                    String(order.status)
-                        .toUpperCase() !== "CANCELLED"
+                    String(
+                        order.status
+                    ).toUpperCase() !==
+                    "CANCELLED"
             )
             .reduce(
-                (sum, order) =>
+                (
+                    sum,
+                    order
+                ) =>
                     sum +
                     Number(
-                        order.totalAmount || 0
+                        order.totalAmount ||
+                        0
                     ),
                 0
             );
+
 
     const restaurantRating =
         restaurant?.rating ??
         dashboard?.rating ??
         0;
+
 
     // =========================================================
     // LOADING
@@ -478,6 +606,7 @@ function OwnerDashboard() {
     if (loading) {
 
         return (
+
             <div className="owner-dashboard-loading">
 
                 <div className="loading-spinner"></div>
@@ -490,16 +619,16 @@ function OwnerDashboard() {
         );
     }
 
+
     // =========================================================
-    // MAIN DASHBOARD
+    // MAIN
     // =========================================================
 
     return (
+
         <div className="owner-dashboard-page">
 
-            {/* =================================================
-                HEADER
-            ================================================= */}
+            {/* HEADER */}
 
             <div className="owner-dashboard-header">
 
@@ -525,11 +654,11 @@ function OwnerDashboard() {
 
             </div>
 
-            {/* =================================================
-                ERROR
-            ================================================= */}
+
+            {/* ERROR */}
 
             {error && (
+
                 <div className="dashboard-error">
 
                     <strong>
@@ -543,9 +672,8 @@ function OwnerDashboard() {
                 </div>
             )}
 
-            {/* =================================================
-                RESTAURANT CARD
-            ================================================= */}
+
+            {/* RESTAURANT */}
 
             {restaurant && (
 
@@ -559,15 +687,17 @@ function OwnerDashboard() {
                                 restaurant.restaurantName ||
                                 "Restaurant"
                             }
-                            onError={(e) => {
+                            onError={(event) => {
 
-                                e.target.src =
-                                    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4";
+                                event.currentTarget.src =
+                                    "https://images.unsplash.com/" +
+                                    "photo-1517248135467-4c7edcad34c4";
 
                             }}
                         />
 
                     </div>
+
 
                     <div className="owner-restaurant-info">
 
@@ -576,16 +706,21 @@ function OwnerDashboard() {
                             <div>
 
                                 <h2>
-                                    {restaurant.restaurantName ||
-                                        "My Restaurant"}
+                                    {
+                                        restaurant.restaurantName ||
+                                        "My Restaurant"
+                                    }
                                 </h2>
 
                                 <p>
-                                    {restaurant.address ||
-                                        "Address not available"}
+                                    {
+                                        restaurant.address ||
+                                        "Address not available"
+                                    }
                                 </p>
 
                             </div>
+
 
                             <div className="owner-rating">
 
@@ -603,25 +738,34 @@ function OwnerDashboard() {
 
                         </div>
 
+
                         <div className="owner-restaurant-details">
 
                             {restaurant.phone && (
+
                                 <span>
-                                    📞 {restaurant.phone}
+                                    📞{" "}
+                                    {restaurant.phone}
                                 </span>
+
                             )}
 
                             {restaurant.openingTime && (
+
                                 <span>
                                     🕐{" "}
                                     {restaurant.openingTime}
                                     {" - "}
-                                    {restaurant.closingTime ||
-                                        "--:--"}
+                                    {
+                                        restaurant.closingTime ||
+                                        "--:--"
+                                    }
                                 </span>
+
                             )}
 
                         </div>
+
 
                         <button
                             className="manage-restaurant-button"
@@ -639,9 +783,8 @@ function OwnerDashboard() {
                 </section>
             )}
 
-            {/* =================================================
-                STATISTICS
-            ================================================= */}
+
+            {/* STATISTICS */}
 
             <section className="owner-stats-grid">
 
@@ -658,12 +801,15 @@ function OwnerDashboard() {
                         </span>
 
                         <strong>
-                            {formatNumber(totalOrders)}
+                            {formatNumber(
+                                totalOrders
+                            )}
                         </strong>
 
                     </div>
 
                 </div>
+
 
                 <div className="owner-stat-card">
 
@@ -678,12 +824,15 @@ function OwnerDashboard() {
                         </span>
 
                         <strong>
-                            {formatNumber(pendingOrders)}
+                            {formatNumber(
+                                pendingOrders
+                            )}
                         </strong>
 
                     </div>
 
                 </div>
+
 
                 <div className="owner-stat-card">
 
@@ -698,12 +847,15 @@ function OwnerDashboard() {
                         </span>
 
                         <strong>
-                            {formatNumber(completedOrders)}
+                            {formatNumber(
+                                completedOrders
+                            )}
                         </strong>
 
                     </div>
 
                 </div>
+
 
                 <div className="owner-stat-card">
 
@@ -718,12 +870,15 @@ function OwnerDashboard() {
                         </span>
 
                         <strong>
-                            {formatCurrency(totalRevenue)}
+                            {formatCurrency(
+                                totalRevenue
+                            )}
                         </strong>
 
                     </div>
 
                 </div>
+
 
                 <div className="owner-stat-card">
 
@@ -749,9 +904,8 @@ function OwnerDashboard() {
 
             </section>
 
-            {/* =================================================
-                QUICK ACTIONS
-            ================================================= */}
+
+            {/* QUICK ACTIONS */}
 
             <section className="quick-actions-section">
 
@@ -763,11 +917,14 @@ function OwnerDashboard() {
 
                 </div>
 
+
                 <div className="quick-actions-grid">
 
                     <button
                         onClick={() =>
-                            navigate("/owner/orders")
+                            navigate(
+                                "/owner/orders"
+                            )
                         }
                         className="quick-action-card"
                     >
@@ -790,9 +947,12 @@ function OwnerDashboard() {
 
                     </button>
 
+
                     <button
                         onClick={() =>
-                            navigate("/owner/foods")
+                            navigate(
+                                "/owner/foods"
+                            )
                         }
                         className="quick-action-card"
                     >
@@ -815,9 +975,12 @@ function OwnerDashboard() {
 
                     </button>
 
+
                     <button
                         onClick={() =>
-                            navigate("/owner/my-restaurant")
+                            navigate(
+                                "/owner/my-restaurant"
+                            )
                         }
                         className="quick-action-card"
                     >
@@ -840,9 +1003,12 @@ function OwnerDashboard() {
 
                     </button>
 
+
                     <button
                         onClick={() =>
-                            navigate("/owner/reports")
+                            navigate(
+                                "/owner/reports"
+                            )
                         }
                         className="quick-action-card"
                     >
@@ -869,9 +1035,8 @@ function OwnerDashboard() {
 
             </section>
 
-            {/* =================================================
-                CUSTOMER REVIEWS
-            ================================================= */}
+
+            {/* CUSTOMER REVIEWS */}
 
             <section className="customer-reviews-section">
 
@@ -884,22 +1049,26 @@ function OwnerDashboard() {
                         </h2>
 
                         <p>
-                            See what your customers are saying
-                            about your restaurant.
+                            See what your customers
+                            are saying about your restaurant.
                         </p>
 
                     </div>
 
+
                     <button
                         className="view-all-button"
                         onClick={() =>
-                            navigate("/owner/reviews")
+                            navigate(
+                                "/owner/reviews"
+                            )
                         }
                     >
                         View All Reviews
                     </button>
 
                 </div>
+
 
                 {reviewError && (
 
@@ -914,8 +1083,8 @@ function OwnerDashboard() {
                         </span>
 
                     </div>
-
                 )}
+
 
                 {reviewsLoading ? (
 
@@ -954,7 +1123,10 @@ function OwnerDashboard() {
                     <div className="reviews-grid">
 
                         {recentReviews.map(
-                            (review, index) => {
+                            (
+                                review,
+                                index
+                            ) => {
 
                                 const customerName =
                                     getReviewCustomerName(
@@ -981,17 +1153,17 @@ function OwnerDashboard() {
                                         }
                                     >
 
-                                        {/* REVIEW HEADER */}
-
                                         <div className="owner-review-header">
 
                                             <div className="review-customer">
 
                                                 <div className="review-customer-avatar">
 
-                                                    {customerName
-                                                        .charAt(0)
-                                                        .toUpperCase()}
+                                                    {
+                                                        customerName
+                                                            .charAt(0)
+                                                            .toUpperCase()
+                                                    }
 
                                                 </div>
 
@@ -1010,25 +1182,29 @@ function OwnerDashboard() {
 
                                             </div>
 
+
                                             <div className="review-date">
 
-                                                {getReviewDate(
-                                                    review
-                                                )}
+                                                {
+                                                    getReviewDate(
+                                                        review
+                                                    )
+                                                }
 
                                             </div>
 
                                         </div>
 
-                                        {/* RATING */}
 
                                         <div className="review-rating">
 
                                             <div className="review-stars">
 
-                                                {renderStars(
-                                                    rating
-                                                )}
+                                                {
+                                                    renderStars(
+                                                        rating
+                                                    )
+                                                }
 
                                             </div>
 
@@ -1038,20 +1214,21 @@ function OwnerDashboard() {
 
                                         </div>
 
-                                        {/* FOOD */}
 
                                         <div className="review-food">
 
                                             🍽️{" "}
+
                                             <span>
-                                                {getReviewFoodName(
-                                                    review
-                                                )}
+                                                {
+                                                    getReviewFoodName(
+                                                        review
+                                                    )
+                                                }
                                             </span>
 
                                         </div>
 
-                                        {/* COMMENT */}
 
                                         <div className="review-comment">
 
@@ -1060,9 +1237,11 @@ function OwnerDashboard() {
                                             </span>
 
                                             <p>
-                                                {getReviewComment(
-                                                    review
-                                                )}
+                                                {
+                                                    getReviewComment(
+                                                        review
+                                                    )
+                                                }
                                             </p>
 
                                         </div>
@@ -1077,9 +1256,8 @@ function OwnerDashboard() {
 
             </section>
 
-            {/* =================================================
-                RECENT ORDERS
-            ================================================= */}
+
+            {/* RECENT ORDERS */}
 
             <section className="recent-orders-section">
 
@@ -1097,16 +1275,20 @@ function OwnerDashboard() {
 
                     </div>
 
+
                     <button
                         className="view-all-button"
                         onClick={() =>
-                            navigate("/owner/orders")
+                            navigate(
+                                "/owner/orders"
+                            )
                         }
                     >
                         View All
                     </button>
 
                 </div>
+
 
                 {recentOrders.length === 0 ? (
 
@@ -1169,99 +1351,124 @@ function OwnerDashboard() {
 
                             </thead>
 
+
                             <tbody>
 
-                                {recentOrders.map(order => (
+                                {recentOrders.map(
+                                    order => (
 
-                                    <tr key={order.id}>
+                                        <tr key={order.id}>
 
-                                        <td>
-                                            <strong>
-                                                #{order.id}
-                                            </strong>
-                                        </td>
+                                            <td>
+                                                <strong>
+                                                    #{order.id}
+                                                </strong>
+                                            </td>
 
-                                        <td>
 
-                                            <div className="customer-cell">
+                                            <td>
 
-                                                <div className="customer-avatar">
+                                                <div className="customer-cell">
 
-                                                    {(
-                                                        order.customerName ||
-                                                        "C"
-                                                    )
-                                                        .charAt(0)
-                                                        .toUpperCase()}
+                                                    <div className="customer-avatar">
+
+                                                        {(
+                                                            order.customerName ||
+                                                            "C"
+                                                        )
+                                                            .charAt(0)
+                                                            .toUpperCase()}
+
+                                                    </div>
+
+                                                    <div>
+
+                                                        <strong>
+                                                            {
+                                                                order.customerName ||
+                                                                "Customer"
+                                                            }
+                                                        </strong>
+
+                                                        <small>
+                                                            {
+                                                                order.customerPhone ||
+                                                                ""
+                                                            }
+                                                        </small>
+
+                                                    </div>
 
                                                 </div>
 
-                                                <div>
+                                            </td>
 
-                                                    <strong>
-                                                        {order.customerName ||
-                                                            "Customer"}
-                                                    </strong>
 
-                                                    <small>
-                                                        {order.customerPhone ||
-                                                            ""}
-                                                    </small>
+                                            <td>
+                                                {
+                                                    order.foodName ||
+                                                    "Food"
+                                                }
+                                            </td>
 
-                                                </div>
 
-                                            </div>
+                                            <td>
+                                                {
+                                                    order.quantity ||
+                                                    0
+                                                }
+                                            </td>
 
-                                        </td>
 
-                                        <td>
-                                            {order.foodName ||
-                                                "Food"}
-                                        </td>
+                                            <td>
 
-                                        <td>
-                                            {order.quantity ||
-                                                0}
-                                        </td>
+                                                <strong>
+                                                    {
+                                                        formatCurrency(
+                                                            order.totalAmount
+                                                        )
+                                                    }
+                                                </strong>
 
-                                        <td>
+                                            </td>
 
-                                            <strong>
-                                                {formatCurrency(
-                                                    order.totalAmount
-                                                )}
-                                            </strong>
 
-                                        </td>
+                                            <td>
 
-                                        <td>
+                                                <span
+                                                    className={
+                                                        `order-status ${getStatusClass(
+                                                            order.status
+                                                        )}`
+                                                    }
+                                                >
+                                                    {
+                                                        order.status ||
+                                                        "PENDING"
+                                                    }
+                                                </span>
 
-                                            <span
-                                                className={`order-status ${getStatusClass(
-                                                    order.status
-                                                )}`}
-                                            >
-                                                {order.status ||
-                                                    "PENDING"}
-                                            </span>
+                                            </td>
 
-                                        </td>
 
-                                        <td>
+                                            <td>
 
-                                            {order.createdAt
-                                                ? new Date(
+                                                {
                                                     order.createdAt
-                                                ).toLocaleDateString(
-                                                    "en-IN"
-                                                )
-                                                : "-"}
+                                                        ? new Date(
+                                                            order.createdAt
+                                                        ).toLocaleDateString(
+                                                            "en-IN"
+                                                        )
+                                                        : "-"
+                                                }
 
-                                        </td>
+                                            </td>
 
-                                    </tr>
+                                        </tr>
 
-                                ))}
+                                    )
+                                )}
 
                             </tbody>
 

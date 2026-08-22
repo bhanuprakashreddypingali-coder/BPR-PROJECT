@@ -8,7 +8,7 @@ const API_BASE_URL =
     "https://bpr-backend-production-3381.up.railway.app/api";
 
 // ============================================================
-// AXIOS INSTANCE
+// MAIN AXIOS INSTANCE
 // ============================================================
 
 const API = axios.create({
@@ -21,26 +21,41 @@ const API = axios.create({
 });
 
 // ============================================================
+// JWT TOKEN HELPER
+// ============================================================
+
+const getToken = () => {
+
+    return (
+        localStorage.getItem("token") ||
+        localStorage.getItem("jwtToken") ||
+        localStorage.getItem("accessToken")
+    );
+};
+
+// ============================================================
 // REQUEST INTERCEPTOR
 // ============================================================
 
 API.interceptors.request.use(
     (config) => {
 
-        const token =
-            localStorage.getItem("token") ||
-            localStorage.getItem("jwtToken") ||
-            localStorage.getItem("accessToken");
+        const token = getToken();
 
         if (token) {
-            config.headers = config.headers || {};
-            config.headers.Authorization = `Bearer ${token}`;
+
+            config.headers =
+                config.headers || {};
+
+            config.headers.Authorization =
+                `Bearer ${token}`;
         }
 
         return config;
     },
 
     (error) => {
+
         return Promise.reject(error);
     }
 );
@@ -50,34 +65,55 @@ API.interceptors.request.use(
 // ============================================================
 
 API.interceptors.response.use(
+
     (response) => {
+
         return response;
     },
 
     (error) => {
 
-        const status = error.response?.status;
+        const status =
+            error?.response?.status;
+
+        const data =
+            error?.response?.data;
 
         console.error(
             "API ERROR:",
             status,
-            error.response?.data || error.message
+            data || error.message
         );
+
+        // ------------------------------------------------------
+        // 401 UNAUTHORIZED
+        // ------------------------------------------------------
 
         if (status === 401) {
 
-            console.warn("401 Unauthorized");
+            console.warn(
+                "Unauthorized request."
+            );
 
-            localStorage.removeItem("token");
-            localStorage.removeItem("jwtToken");
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("user");
-            localStorage.removeItem("role");
+            /*
+             * Do not automatically redirect.
+             * This prevents pages from unexpectedly
+             * navigating to login.
+             */
+
+            // Keep token removal disabled here because
+            // some backend endpoints may return 401
+            // temporarily.
         }
 
+        // ------------------------------------------------------
+        // 403 FORBIDDEN
+        // ------------------------------------------------------
+
         if (status === 403) {
+
             console.warn(
-                "403 Forbidden - check authentication and role"
+                "Access denied. Check JWT token and user role."
             );
         }
 
@@ -85,89 +121,6 @@ API.interceptors.response.use(
     }
 );
 
-// ============================================================
-// ADMIN API
-// ============================================================
-
-export const adminApi = {
-
-    getDashboard: () =>
-        API.get("/admin/dashboard"),
-
-    getUsers: () =>
-        API.get("/admin/users"),
-
-    getAllUsers: () =>
-        API.get("/admin/users"),
-
-    approveOwner: (id) =>
-        API.put(`/admin/users/${id}/approve`),
-
-    rejectOwner: (id) =>
-        API.put(`/admin/users/${id}/reject`),
-
-    deleteUser: (id) =>
-        API.delete(`/admin/users/${id}`),
-
-    getRestaurants: () =>
-        API.get("/admin/restaurants"),
-
-    getOrders: () =>
-        API.get("/admin/orders")
-};
-
-// ============================================================
-// SUPPORT API
-// ============================================================
-
-export const supportApi = {
-
-    createTicket: (data) =>
-        API.post("/support/tickets", data),
-
-    getMyTickets: () =>
-        API.get("/support/tickets"),
-
-    getMyTicket: (ticketId) =>
-        API.get(`/support/tickets/${ticketId}`),
-
-    addUserMessage: (ticketId, data) =>
-        API.post(
-            `/support/tickets/${ticketId}/messages`,
-            data
-        ),
-
-    getAllTickets: (status = "") => {
-
-        if (status && status.trim()) {
-
-            return API.get(
-                `/admin/support/tickets?status=${encodeURIComponent(
-                    status
-                )}`
-            );
-        }
-
-        return API.get("/admin/support/tickets");
-    },
-
-    getAdminTicket: (ticketId) =>
-        API.get(
-            `/admin/support/tickets/${ticketId}`
-        ),
-
-    addAdminMessage: (ticketId, data) =>
-        API.post(
-            `/admin/support/tickets/${ticketId}/messages`,
-            data
-        ),
-
-    updateTicket: (ticketId, data) =>
-        API.put(
-            `/admin/support/tickets/${ticketId}`,
-            data
-        )
-};
 
 // ============================================================
 // REVIEW API
@@ -175,27 +128,213 @@ export const supportApi = {
 
 export const reviewApi = {
 
-    getRestaurantReviews: (restaurantId) =>
-        API.get(
+    // ----------------------------------------------------------
+    // GET RESTAURANT REVIEWS
+    // ----------------------------------------------------------
+
+    getRestaurantReviews: (restaurantId) => {
+
+        return API.get(
             `/reviews/restaurant/${restaurantId}`
-        ),
+        );
+    },
 
-    addReview: (data) =>
-        API.post(
+    // ----------------------------------------------------------
+    // ADD REVIEW
+    // ----------------------------------------------------------
+
+    addReview: (reviewData) => {
+
+        return API.post(
             "/reviews",
-            data
-        ),
+            reviewData
+        );
+    },
 
-    getMyReviews: () =>
-        API.get(
+    // ----------------------------------------------------------
+    // GET MY REVIEWS
+    // ----------------------------------------------------------
+
+    getMyReviews: () => {
+
+        return API.get(
             "/reviews/my"
-        ),
+        );
+    },
 
-    deleteReview: (id) =>
-        API.delete(
-            `/reviews/${id}`
-        )
+    // ----------------------------------------------------------
+    // GET ALL REVIEWS
+    // ----------------------------------------------------------
+
+    getAllReviews: () => {
+
+        return API.get(
+            "/reviews"
+        );
+    },
+
+    // ----------------------------------------------------------
+    // GET REVIEW BY ID
+    // ----------------------------------------------------------
+
+    getReviewById: (reviewId) => {
+
+        return API.get(
+            `/reviews/${reviewId}`
+        );
+    },
+
+    // ----------------------------------------------------------
+    // UPDATE REVIEW
+    // ----------------------------------------------------------
+
+    updateReview: (
+        reviewId,
+        reviewData
+    ) => {
+
+        return API.put(
+            `/reviews/${reviewId}`,
+            reviewData
+        );
+    },
+
+    // ----------------------------------------------------------
+    // DELETE REVIEW
+    // ----------------------------------------------------------
+
+    deleteReview: (reviewId) => {
+
+        return API.delete(
+            `/reviews/${reviewId}`
+        );
+    }
+
 };
+
+
+// ============================================================
+// SUPPORT API
+// ============================================================
+
+export const supportApi = {
+
+    // ----------------------------------------------------------
+    // CREATE SUPPORT TICKET
+    // ----------------------------------------------------------
+
+    createTicket: (ticketData) => {
+
+        return API.post(
+            "/support/tickets",
+            ticketData
+        );
+    },
+
+    // ----------------------------------------------------------
+    // GET MY SUPPORT TICKETS
+    // ----------------------------------------------------------
+
+    getMyTickets: () => {
+
+        return API.get(
+            "/support/tickets/my"
+        );
+    },
+
+    // ----------------------------------------------------------
+    // GET SUPPORT TICKET BY ID
+    // ----------------------------------------------------------
+
+    getTicketById: (ticketId) => {
+
+        return API.get(
+            `/support/tickets/${ticketId}`
+        );
+    },
+
+    // ----------------------------------------------------------
+    // ADD USER MESSAGE
+    // ----------------------------------------------------------
+
+    addMessage: (
+        ticketId,
+        messageData
+    ) => {
+
+        return API.post(
+            `/support/tickets/${ticketId}/messages`,
+            messageData
+        );
+    },
+
+    // ----------------------------------------------------------
+    // GET TICKET MESSAGES
+    // ----------------------------------------------------------
+
+    getMessages: (ticketId) => {
+
+        return API.get(
+            `/support/tickets/${ticketId}/messages`
+        );
+    },
+
+    // ----------------------------------------------------------
+    // CLOSE TICKET
+    // ----------------------------------------------------------
+
+    closeTicket: (ticketId) => {
+
+        return API.put(
+            `/support/tickets/${ticketId}/close`
+        );
+    },
+
+    // ----------------------------------------------------------
+    // ADMIN - GET ALL TICKETS
+    // ----------------------------------------------------------
+
+    getAllTickets: () => {
+
+        return API.get(
+            "/support/tickets"
+        );
+    },
+
+    // ----------------------------------------------------------
+    // ADMIN - UPDATE TICKET STATUS
+    // ----------------------------------------------------------
+
+    updateTicketStatus: (
+        ticketId,
+        status
+    ) => {
+
+        return API.put(
+            `/support/tickets/${ticketId}/status`,
+            {
+                status
+            }
+        );
+    },
+
+    // ----------------------------------------------------------
+    // ADMIN - ADD ADMIN MESSAGE
+    // ----------------------------------------------------------
+
+    addAdminMessage: (
+        ticketId,
+        messageData
+    ) => {
+
+        return API.post(
+            `/support/tickets/${ticketId}/admin-message`,
+            messageData
+        );
+    }
+
+};
+
 
 // ============================================================
 // DEFAULT EXPORT
