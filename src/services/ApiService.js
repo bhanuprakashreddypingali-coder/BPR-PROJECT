@@ -6,7 +6,7 @@ import axios from "axios";
 
 const API_BASE_URL = (
     import.meta.env.VITE_API_URL ||
-    "https://bpr-backend-production-3381.up.railway.app/api"
+    "https://bpr-backend-production-11c5.up.railway.app/api"
 ).replace(/\/+$/, "");
 
 // =========================================================
@@ -35,10 +35,7 @@ API.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        console.log(
-            "================================================="
-        );
-
+        console.log("=================================================");
         console.log(
             "API REQUEST:",
             config.method?.toUpperCase(),
@@ -49,9 +46,7 @@ API.interceptors.request.use(
             console.log("REQUEST DATA:", config.data);
         }
 
-        console.log(
-            "================================================="
-        );
+        console.log("=================================================");
 
         return config;
     },
@@ -72,7 +67,7 @@ API.interceptors.response.use(
         console.log(
             "API RESPONSE:",
             response.status,
-            response.config?.url
+            `${response.config?.baseURL}${response.config?.url}`
         );
 
         return response;
@@ -83,9 +78,7 @@ API.interceptors.response.use(
         const status = error.response?.status;
         const data = error.response?.data;
 
-        console.error(
-            "================================================="
-        );
+        console.error("=================================================");
 
         console.error(
             "API ERROR STATUS:",
@@ -104,9 +97,7 @@ API.interceptors.response.use(
                 : "Unknown URL"
         );
 
-        console.error(
-            "================================================="
-        );
+        console.error("=================================================");
 
         if (status === 401) {
             console.warn(
@@ -269,28 +260,6 @@ export const reviewApi = {
 // =========================================================
 // SUPPORT API
 // =========================================================
-//
-// BASE URL:
-// https://bpr-backend-production-3381.up.railway.app/api
-//
-// CUSTOMER / OWNER:
-//
-// POST   /api/support/tickets
-// GET    /api/support/tickets
-// GET    /api/support/tickets/{id}
-// POST   /api/support/tickets/{id}/messages
-//
-// ADMIN:
-//
-// GET    /api/admin/support
-// GET    /api/admin/support/{id}
-// POST   /api/admin/support/{id}/messages
-// PUT    /api/admin/support/{id}
-// PUT    /api/admin/support/{id}/close
-// PUT    /api/admin/support/{id}/reopen
-// DELETE /api/admin/support/{id}
-//
-// =========================================================
 
 export const supportApi = {
 
@@ -335,7 +304,7 @@ export const supportApi = {
     },
 
     // =====================================================
-    // GET MY SINGLE TICKET
+    // GET SINGLE TICKET
     // GET /api/support/tickets/{id}
     // =====================================================
 
